@@ -1,0 +1,194 @@
+networks:
+  immich-net:
+  nextcloud-net:
+
+services:
+  # ============================================================
+  # PHOTO MANAGEMENT (Immich)
+  # ============================================================
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v2.3.1
+    container_name: immich-server
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /mnt/das/immich/upload:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    ports:
+      - "2283:2283"
+    depends_on:
+      - immich-db
+      - immich-redis
+    networks:
+      - immich-net
+      - default
+    restart: unless-stopped
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v2.3.1-openvino
+    container_name: immich-ml
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /mnt/das/immich/model-cache:/cache
+    env_file:
+      - .env
+    networks:
+      - immich-net
+    restart: unless-stopped
+
+  immich-db:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.3.0-pgvectors0.2.0
+    container_name: immich-db
+    volumes:
+      - /opt/db-data/immich-pgdata:/var/lib/postgresql/data
+    env_file:
+      - .env
+    networks:
+      - immich-net
+    restart: unless-stopped
+
+  immich-redis:
+    image: redis:7-alpine
+    container_name: immich-redis
+    networks:
+      - immich-net
+    restart: unless-stopped
+
+  # ============================================================
+  # PRIVATE CLOUD (Nextcloud)
+  # ============================================================
+  nextcloud:
+    image: nextcloud:stable
+    container_name: nextcloud
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /var/www/nextcloud/:/var/www/html
+      - /var/www/nextcloud/custom_apps:/var/www/html/custom_apps
+      - /var/www/nextcloud/config:/var/www/html/config
+      - /mnt/das/nextcloud/data:/var/www/html/data
+      - /mnt/das/nextcloud/external_locaions/tmpfs:/tmpfs
+      - /mnt/das/nextcloud/external_locaions/Non-Raid-1:/var/SG_NonRaid
+      - /mnt/das/nextcloud/external_locaions/Non-Raid-2:/var/WD_NonRaid
+      - /mnt/das/nextcloud/external_locaions/Raid-Shared:/var/Raid
+      - /tmp:/tmp:exec
+      - /mnt/seagate-hdd:/var/seagate-hdd
+      - /mnt/wd-ext-hdd:/var/wd-ext-hdd
+    environment:
+      - MYSQL_HOST=mariadb
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${NC_DB_USER}
+      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NC_TRUSTED_DOMAINS}
+      - OVERWRITECLIURL=${NC_OVERWRITE_URL}
+      - OVERWRITEHOST=${NC_OVERWRITE_HOST}
+      - OVERWRITEPROTOCOL=https
+      - PHP_MEMORY_LIMIT=2G
+      - PHP_UPLOAD_LIMIT=100G
+      - REDIS_HOST=nextcloud-redis
+      - REDIS_PORT=6379
+    ports:
+      - "8080:80"
+    depends_on:
+      - mariadb
+      - nextcloud-redis
+    networks:
+      - nextcloud-net
+      - default
+    restart: unless-stopped
+
+  mariadb:
+    image: linuxserver/mariadb:latest
+    container_name: mariadb
+    volumes:
+      - /opt/db-data/nextcloud-mariadb:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${NC_DB_USER}
+      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+      - TZ=America/Chicago
+    networks:
+      - nextcloud-net
+    restart: unless-stopped
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+    networks:
+      - nextcloud-net
+    restart: unless-stopped
+
+  # ============================================================
+  # MEDIA PLAYER (Jellyfin)
+  # ============================================================
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    user: "1000:1000"
+    group_add:
+      - "video"
+      - "render"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /mnt/das/jellyfin/config:/config
+      - /mnt/das/jellyfin/cache:/cache
+      - /mnt/seagate-hdd/movies:/media/movies
+      - /mnt/seagate-hdd/shows:/media/shows
+      - /mnt/seagate-hdd/songs:/media/songs
+    ports:
+      - "8096:8096"
+    environment:
+      - TZ=America/Chicago
+    restart: unless-stopped
+
+  # ============================================================
+  # NVR (Frigate)
+  # ============================================================
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    shm_size: "256mb"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /mnt/das/frigate/config:/config
+      - /mnt/das/frigate/media:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "5000:5000"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+      - "8971:8971"
+    environment:
+      - TZ=America/Chicago
+    restart: unless-stopped
+
+  # ============================================================
+  # REMOTE DESKTOP (Selkies)
+  # ============================================================
+  selkies-gpu:
+    image: ghcr.io/selkies-project/nvidia-glx-desktop:latest
+    container_name: selkies-gpu
+    devices:
+      - /dev/dri:/dev/dri
+    tmpfs:
+      - /dev/shm:rw
+    volumes:
+      - /mnt/das/selkies/config:/config
+      - /mnt/das/selkies/downloads:/home/ubuntu/Downloads
+    ports:
+      - "8082:8080"
+    environment:
+      - DISPLAY_SIZEW=1920
+      - DISPLAY_SIZEH=1080
+      - SELKIES_ENCODER=vaapi
+      - SELKIES_FRAMERATE=60
+      - SELKIES_PORT=8080
+      - PASSWD=${SELKIES_PASSWORD}
+    restart: unless-stopped
