@@ -1,0 +1,6 @@
+# Plaintext secrets - NEVER commit these
+.env
+*.cleaned.env
+
+# Encrypted secrets are safe to commit
+# !*.env.enc.yaml
