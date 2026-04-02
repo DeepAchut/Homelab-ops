@@ -104,7 +104,7 @@ services:
     image: linuxserver/mariadb:latest
     container_name: mariadb
     volumes:
-      - /var/lib/nextcloud-db:/var/lib/mysql
+      - /var/lib/nextcloud-db:/config
     environment:
       - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
       - MYSQL_DATABASE=nextcloud
