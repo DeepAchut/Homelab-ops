@@ -43,7 +43,7 @@ services:
     image: ghcr.io/immich-app/postgres:14-vectorchord0.3.0-pgvectors0.2.0
     container_name: immich-db
     volumes:
-      - /opt/db-data/immich-pgdata:/var/lib/postgresql/data
+      - /var/lib/immich-db:/var/lib/postgresql/data
     env_file:
       - .env
     networks:
@@ -104,7 +104,7 @@ services:
     image: linuxserver/mariadb:latest
     container_name: mariadb
     volumes:
-      - /opt/db-data/nextcloud-mariadb:/var/lib/mysql
+      - /var/lib/nextcloud-db:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
       - MYSQL_DATABASE=nextcloud
@@ -130,8 +130,8 @@ services:
     container_name: jellyfin
     user: "1000:1000"
     group_add:
-      - "video"
-      - "render"
+      - "44"   # video
+      - "992"  # render
     devices:
       - /dev/dri:/dev/dri
     volumes:
@@ -167,28 +167,5 @@ services:
       - "8971:8971"
     environment:
       - TZ=America/Chicago
-    restart: unless-stopped
-
-  # ============================================================
-  # REMOTE DESKTOP (Selkies)
-  # ============================================================
-  selkies-gpu:
-    image: ghcr.io/selkies-project/nvidia-glx-desktop:latest
-    container_name: selkies-gpu
-    devices:
-      - /dev/dri:/dev/dri
-    tmpfs:
-      - /dev/shm:rw
-    volumes:
-      - /mnt/das/selkies/config:/config
-      - /mnt/das/selkies/downloads:/home/ubuntu/Downloads
-    ports:
-      - "8082:8080"
-    environment:
-      - DISPLAY_SIZEW=1920
-      - DISPLAY_SIZEH=1080
-      - SELKIES_ENCODER=vaapi
-      - SELKIES_FRAMERATE=60
-      - SELKIES_PORT=8080
-      - PASSWD=${SELKIES_PASSWORD}
+      - GO2RTC_ALLOW_ARBITRARY_EXEC=true
     restart: unless-stopped
