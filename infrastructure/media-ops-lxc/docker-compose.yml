@@ -7,7 +7,7 @@ services:
   # PHOTO MANAGEMENT (Immich)
   # ============================================================
   immich-server:
-    image: ghcr.io/immich-app/immich-server:latest
+    image: ghcr.io/immich-app/immich-server:v2.6.1
     container_name: immich-server
     devices:
       - /dev/dri:/dev/dri
@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:latest-openvino
+    image: ghcr.io/immich-app/immich-machine-learning:v2.6.1-openvino
     container_name: immich-ml
     devices:
       - /dev/dri:/dev/dri
