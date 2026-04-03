@@ -138,7 +138,7 @@ services:
       - /mnt/das/jellyfin/config:/config
       - /mnt/das/jellyfin/cache:/cache
       - /mnt/sg-ext-hdd/Entertainment/Movies:/media/movies
-      - /mnt/sg-ext-hdd/Entertainment/shows:/media/shows
+      - /mnt/sg-ext-hdd/Entertainment/tvshows:/media/shows
       - /mnt/sg-ext-hdd/Entertainment/songs:/media/songs
     ports:
       - "8096:8096"
