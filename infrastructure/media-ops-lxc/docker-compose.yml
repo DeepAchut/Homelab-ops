@@ -7,7 +7,7 @@ services:
   # PHOTO MANAGEMENT (Immich)
   # ============================================================
   immich-server:
-    image: ghcr.io/immich-app/immich-server:v2.3.1
+    image: ghcr.io/immich-app/immich-server:latest
     container_name: immich-server
     devices:
       - /dev/dri:/dev/dri
@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v2.3.1-openvino
+    image: ghcr.io/immich-app/immich-machine-learning:latest-openvino
     container_name: immich-ml
     devices:
       - /dev/dri:/dev/dri
@@ -75,7 +75,7 @@ services:
       - /mnt/das/nextcloud/external_locaions/Non-Raid-2:/var/WD_NonRaid
       - /mnt/das/nextcloud/external_locaions/Raid-Shared:/var/Raid
       - /tmp:/tmp:exec
-      - /mnt/seagate-hdd:/var/seagate-hdd
+      - /mnt/sg-ext-hdd:/var/sg-ext-hdd
       - /mnt/wd-ext-hdd:/var/wd-ext-hdd
     environment:
       - MYSQL_HOST=mariadb
@@ -137,9 +137,9 @@ services:
     volumes:
       - /mnt/das/jellyfin/config:/config
       - /mnt/das/jellyfin/cache:/cache
-      - /mnt/seagate-hdd/movies:/media/movies
-      - /mnt/seagate-hdd/shows:/media/shows
-      - /mnt/seagate-hdd/songs:/media/songs
+      - /mnt/sg-ext-hdd/Entertainment/movies:/media/movies
+      - /mnt/sg-ext-hdd/Entertainment/shows:/media/shows
+      - /mnt/sg-ext-hdd/Entertainment/songs:/media/songs
     ports:
       - "8096:8096"
     environment:
