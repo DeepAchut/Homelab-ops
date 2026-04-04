@@ -79,7 +79,7 @@ services:
     network_mode: host
     environment:
       - TZ=America/Chicago
-      - UPSNAP_INTERVAL=@every 10s
+      - UPSNAP_INTERVAL=*/10 * * * * *
       - UPSNAP_SCAN_RANGE=192.168.4.0/24
     volumes:
       - /mnt/das/upsnap/data:/app/pb_data
