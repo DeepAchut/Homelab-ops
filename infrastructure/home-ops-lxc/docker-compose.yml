@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
 
   nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:stable
+    image: jc21/nginx-proxy-manager:latest
     container_name: npm
     volumes:
       - /mnt/das/nginxproxymanager/data:/data
