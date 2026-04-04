@@ -9,6 +9,7 @@ SOURCE_IP="192.168.4.55"
 # Destination IPs (Update these to your new LXC IPs)
 STORAGE_LXC_IP="192.168.4.11"
 MEDIA_AI_LXC_IP="192.168.4.12"
+HOME_OPS_LXC_IP="192.168.4.13"
 
 LOG_FILE="./migration_split_$(date +%F).log"
 DRY_RUN=true # Set to false when you are ready for the real move!
@@ -21,21 +22,22 @@ MAPPINGS=(
     # "/mnt/wd-hdd-500/frigate/config/ | $STORAGE_LXC_IP | /mnt/das/frigate/config/"
     # "/mnt/wd-hdd-500/frigate/media/ | $STORAGE_LXC_IP | /mnt/das/frigate/media/"
     # "/mnt/sandisk-ssd-raid/Immich/ | $STORAGE_LXC_IP | /mnt/das/immich/upload/"
-    "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Data/ | $STORAGE_LXC_IP | /mnt/das/nextcloud/data/"
+    # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Data/ | $STORAGE_LXC_IP | /mnt/das/nextcloud/data/"
     # "/mnt/tforce-ssd-raid/SSD-Raid/vaultwarden/data/ | $STORAGE_LXC_IP | /mnt/das/vaultwarden/data/"
     
     # --- MEDIA & AI LXC TARGETS (Databases & High-IO) ---
     # "/mnt/tforce-ssd-raid/SSD-Raid/nextcloud_db/config/ | $MEDIA_AI_LXC_IP | /var/lib/nextcloud-db/"
     # "/mnt/sandisk-ssd-raid/Immich/pgdata/ | $MEDIA_AI_LXC_IP | /var/lib/immich-db/"
     # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/WWW/ | $MEDIA_AI_LXC_IP | /var/www/nextcloud/"
-    # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Data/deep/files/Notes/ObsidianNotes/ObsidianLiveSync/data/couchdb/ | $MEDIA_AI_LXC_IP | /var/lib/obsidianLiveSync/couchdb/"
-    "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Configs/ | $STORAGE_LXC_IP | /var/www/nextcloud/config/"
-    "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Apps/ | $STORAGE_LXC_IP | /var/www/nextcloud/custom_apps/"
+    "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Data/deep/files/Notes/ObsidianNotes/ObsidianLiveSync/data/couchdb/ | $HOME_OPS_LXC_IP | /var/lib/obsidianLiveSync/couchdb/"
+    # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Configs/ | $MEDIA_AI_LXC_IP | /var/www/nextcloud/config/"
+    # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Apps/ | $MEDIA_AI_LXC_IP | /var/www/nextcloud/custom_apps/"
 
     #--- Home/Monitoring Ops LXCs in Storage LXC ---
     # "/DATA/AppData/Wake-on-lan/data/ | $STORAGE_LXC_IP | /mnt/das/upsnap/data/"
     # "/DATA/AppData/big-bear-gotify/data/ | $STORAGE_LXC_IP | /mnt/das/gotify/data/"
     # "/DATA/AppData/uptimekuma/app/data/ | $STORAGE_LXC_IP | /mnt/das/uptimekuma/data/"
+    "/DATA/AppData/nginxproxymanager/ | $STORAGE_LXC_IP | /mnt/das/nginxproxymanager/"
     # "/mnt/wd-hdd-500/selkies/ | $STORAGE_LXC_IP | /mnt/das/selkies/"
     # "/mnt/wd-hdd-500/mosquitto/ | $STORAGE_LXC_IP | /mnt/das/mosquitto/"
     # # "/mnt/tforce-ssd-raid/SSD-Raid/vaultwarden/data/ | $STORAGE_LXC_IP | /mnt/das/vaultwarden/data/"
