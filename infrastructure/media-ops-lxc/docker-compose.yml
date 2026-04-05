@@ -170,4 +170,5 @@ services:
     environment:
       - TZ=America/Chicago
       - GO2RTC_ALLOW_ARBITRARY_EXEC=true
+      - OMP_NUM_THREADS=8
     restart: unless-stopped
