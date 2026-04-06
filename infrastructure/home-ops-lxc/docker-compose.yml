@@ -30,7 +30,7 @@ services:
     container_name: npm
     volumes:
       - /mnt/das/nginxproxymanager/data:/data
-      - /mnt/das/nginxproxymanager/letsencrypt:/etc/letsencrypt
+      - /mnt/das/nginxproxymanager/etc/letsencrypt:/etc/letsencrypt
       - /mnt/das/nginxproxymanager/default_site:/app/npm-logs
       - /mnt/das/nginxproxymanager/default_site:/default_site
     ports:

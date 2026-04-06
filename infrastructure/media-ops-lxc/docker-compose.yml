@@ -37,6 +37,11 @@ services:
       - /mnt/das/immich/model-cache:/cache
     env_file:
       - .env
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
     networks:
       - immich-net
     restart: unless-stopped
