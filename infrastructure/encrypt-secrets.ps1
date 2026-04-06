@@ -16,7 +16,7 @@ function Protect-EnvFile {
 }
 
 # Encrypt .env files for each LXC
-#Protect-EnvFile -Path "media-ops-lxc/.env"
+Protect-EnvFile -Path "media-ops-lxc/.env"
 Protect-EnvFile -Path "home-ops-lxc/.env"
 
 # Reminder: add .env to .gitignore, commit only .env.enc files

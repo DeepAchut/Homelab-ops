@@ -172,3 +172,26 @@ services:
       - GO2RTC_ALLOW_ARBITRARY_EXEC=true
       - OMP_NUM_THREADS=8
     restart: unless-stopped
+
+  # ============================================================
+  # PRIVATE BROWSER DESKTOP (Webtop)
+  # ============================================================
+  webtop:
+    image: lscr.io/linuxserver/webtop:alpine-xfce
+    container_name: webtop
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+      - CUSTOM_USER=${WEBTOP_USER}
+      - PASSWORD=${WEBTOP_PASSWORD}
+    volumes:
+      - /mnt/wd-ext-hdd/webtop/config:/config
+      - /mnt/wd-ext-hdd/webtop/downloads:/config/Downloads
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    shm_size: "1gb"
+    restart: unless-stopped
