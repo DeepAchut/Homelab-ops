@@ -177,7 +177,7 @@ services:
   # PRIVATE BROWSER DESKTOP (Webtop)
   # ============================================================
   webtop:
-    image: lscr.io/linuxserver/webtop:alpine-xfce
+    image: lscr.io/linuxserver/webtop:latest
     container_name: webtop
     devices:
       - /dev/dri:/dev/dri
