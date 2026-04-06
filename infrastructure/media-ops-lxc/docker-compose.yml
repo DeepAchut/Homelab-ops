@@ -14,8 +14,8 @@ services:
     volumes:
       - /mnt/das/immich/upload:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
-      - /mnt/das/nextcloud/external_locations/Raid-Shared/shared/shared_photos:/usr/src/app/external/deepkhush_photos
-      - /mnt/das/nextcloud/external_locations/Raid-Shared/shared/deep/Deepkhush Photos:/usr/src/app/external/shared_photos
+      - /mnt/das/nextcloud/external_locaions/Raid-Shared/shared/shared_photos:/usr/src/app/external/deepkhush_photos
+      - /mnt/das/nextcloud/external_locaions/Raid-Shared/shared/deep/Deepkhush Photos:/usr/src/app/external/shared_photos
     env_file:
       - .env
     ports:
