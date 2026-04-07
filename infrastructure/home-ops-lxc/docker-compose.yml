@@ -4,7 +4,7 @@ services:
     container_name: homeassistant
     network_mode: host
     volumes:
-      - /var/lib/homeassistant:/config
+      - /var/lib/homeassistant/config:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     # devices:
