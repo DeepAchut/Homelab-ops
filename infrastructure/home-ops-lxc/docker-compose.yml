@@ -74,6 +74,18 @@ services:
       - ADMIN_TOKEN=${VW_ADMIN_TOKEN}
     restart: unless-stopped
 
+  upsnap:
+    image: ghcr.io/seriousm4x/upsnap:latest
+    container_name: upsnap
+    network_mode: host
+    environment:
+      - TZ=America/Chicago
+      - UPSNAP_INTERVAL=@every 10s
+      - UPSNAP_SCAN_RANGE=192.168.4.0/24
+    volumes:
+      - /var/lib/upsnap/data:/app/pb_data
+    restart: unless-stopped
+
   obsidian-livesync:
     image: couchdb:3.5.0
     container_name: obsidian-livesync
