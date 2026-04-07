@@ -4,7 +4,7 @@ services:
     container_name: homeassistant
     network_mode: host
     volumes:
-      - /mnt/das/homeassistant/config:/config
+      - /var/lib/homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     # devices:
@@ -17,9 +17,9 @@ services:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
     volumes:
-      - /mnt/das/mosquitto/config:/mosquitto/config
-      - /mnt/das/mosquitto/data:/mosquitto/data
-      - /mnt/das/mosquitto/log:/mosquitto/log
+      - /var/lib/mosquitto/config:/mosquitto/config
+      - /var/lib/mosquitto/data:/mosquitto/data
+      - /var/lib/mosquitto/log:/mosquitto/log
     ports:
       - "1883:1883"
       - "9001:9001"
@@ -29,10 +29,10 @@ services:
     image: jc21/nginx-proxy-manager:latest
     container_name: npm
     volumes:
-      - /mnt/das/nginxproxymanager/data:/data
-      - /mnt/das/nginxproxymanager/etc/letsencrypt:/etc/letsencrypt
-      - /mnt/das/nginxproxymanager/default_site:/app/npm-logs
-      - /mnt/das/nginxproxymanager/default_site:/default_site
+      - /var/lib/npm/data:/data
+      - /var/lib/npm/etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/npm/default_site:/app/npm-logs
+      - /var/lib/npm/default_site:/default_site
     ports:
       - "80:80"
       - "443:443"
@@ -66,7 +66,7 @@ services:
     image: vaultwarden/server:latest
     container_name: vaultwarden
     volumes:
-      - /mnt/das/vaultwarden/data:/data
+      - /var/lib/vaultwarden/data:/data
     ports:
       - "8443:80"
     environment:
@@ -86,6 +86,6 @@ services:
     ports:
       - "5984:5984"
     volumes:
-      - /mnt/das/nextcloud/data/deep/files/Notes/ObsidianNotes/ObsidianLiveSync/data/couchdb:/opt/couchdb/data
-      - /mnt/das/nextcloud/data/deep/files/Notes/ObsidianNotes/ObsidianLiveSync/data/couchdb/etc/local.ini:/opt/couchdb/etc/local.ini
+      - /var/lib/obsidian-livesync:/opt/couchdb/data
+      - /var/lib/obsidian-livesync/etc/local.ini:/opt/couchdb/etc/local.ini
     restart: unless-stopped
