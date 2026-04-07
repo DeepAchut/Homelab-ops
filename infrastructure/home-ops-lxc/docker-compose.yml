@@ -62,27 +62,16 @@ services:
   #     - .env
   #   restart: unless-stopped
 
-  myspeed:
-    image: germannewsmaker/myspeed:latest
-    container_name: myspeed
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
     volumes:
-      - /mnt/das/myspeed/data:/myspeed/data
+      - /mnt/das/vaultwarden/data:/data
     ports:
-      - "5216:5216"
+      - "8443:80"
     environment:
       - TZ=America/Chicago
-    restart: unless-stopped
-
-  upsnap:
-    image: ghcr.io/seriousm4x/upsnap:latest
-    container_name: upsnap
-    network_mode: host
-    environment:
-      - TZ=America/Chicago
-      - UPSNAP_INTERVAL=*/10 * * * * *
-      - UPSNAP_SCAN_RANGE=192.168.4.0/24
-    volumes:
-      - /mnt/das/upsnap/data:/app/pb_data
+      - ADMIN_TOKEN=${VW_ADMIN_TOKEN}
     restart: unless-stopped
 
   obsidian-livesync:
