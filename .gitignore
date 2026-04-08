@@ -4,3 +4,11 @@
 
 # Encrypted secrets are safe to commit
 # !*.env.enc.yaml
+
+*.log
+
+# Talos plaintext configs - NEVER commit these
+talosconfig
+controlplane.yaml
+worker.yaml
+kubeconfig
