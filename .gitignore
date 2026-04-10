@@ -6,6 +6,12 @@
 # !*.env.enc.yaml
 
 *.log
+**/migrate-homeops-to-ssd.sh
+**/audit.sh
+
+# K8s plaintext secrets - NEVER commit these
+**/secret.yaml
+**/secrets.yaml
 
 # Talos plaintext configs - NEVER commit these
 talosconfig

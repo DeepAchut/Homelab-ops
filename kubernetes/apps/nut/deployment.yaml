@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nut-server
+  namespace: nut
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nut-server
+  template:
+    metadata:
+      labels:
+        app: nut-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ira-rpi4-talos-worker
+      hostNetwork: true
+      initContainers:
+        - name: render-config
+          image: busybox:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              cp /etc/nut-templates/* /etc/nut/
+              sed -i "s/__ADMIN_PASSWORD__/$ADMIN_PASSWORD/g" /etc/nut/upsd.users
+              sed -i "s/__MONITOR_PASSWORD__/$MONITOR_PASSWORD/g" /etc/nut/upsd.users
+              sed -i "s/__MONITOR_PASSWORD__/$MONITOR_PASSWORD/g" /etc/nut/upsmon.conf
+          env:
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nut-secrets
+                  key: ADMIN_PASSWORD
+            - name: MONITOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nut-secrets
+                  key: MONITOR_PASSWORD
+          volumeMounts:
+            - name: nut-config-templates
+              mountPath: /etc/nut-templates
+            - name: nut-config-rendered
+              mountPath: /etc/nut
+      containers:
+        - name: nut-server
+          image: instantlinux/nut-upsd:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # Ensure runtime directory exists
+              mkdir -p /var/run/nut
+              chown nut:nut /var/run/nut
+              # Clean stale PID files from previous runs
+              rm -f /var/run/nut/*.pid
+              # Start the UPS driver
+              upsdrvctl start
+              # Start upsd (NUT network server)
+              upsd
+              # Run upsmon in foreground (keeps container alive)
+              exec upsmon -F
+          ports:
+            - containerPort: 3493
+              hostPort: 3493
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: nut-config-rendered
+              mountPath: /etc/nut
+            - name: usb
+              mountPath: /dev/bus/usb
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: nut-config-templates
+          configMap:
+            name: nut-config
+        - name: nut-config-rendered
+          emptyDir: {}
+        - name: usb
+          hostPath:
+            path: /dev/bus/usb
+            type: Directory
