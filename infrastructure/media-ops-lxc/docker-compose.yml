@@ -154,29 +154,30 @@ services:
     restart: unless-stopped
 
   # ============================================================
-  # NVR (Frigate)
+  # NVR (Frigate) — REMOVED in Phase 13
+  # Replaced by native Reolink integration + HA automations
   # ============================================================
-  frigate:
-    image: ghcr.io/blakeblackshear/frigate:stable
-    container_name: frigate
-    shm_size: "256mb"
-    devices:
-      - /dev/dri:/dev/dri
-    volumes:
-      - /mnt/das/frigate/config:/config
-      - /mnt/das/frigate/media:/media/frigate
-      - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "5000:5000"
-      - "8554:8554"
-      - "8555:8555/tcp"
-      - "8555:8555/udp"
-      - "8971:8971"
-    environment:
-      - TZ=America/Chicago
-      - GO2RTC_ALLOW_ARBITRARY_EXEC=true
-      - OMP_NUM_THREADS=8
-    restart: unless-stopped
+  # frigate:
+  #   image: ghcr.io/blakeblackshear/frigate:stable
+  #   container_name: frigate
+  #   shm_size: "256mb"
+  #   devices:
+  #     - /dev/dri:/dev/dri
+  #   volumes:
+  #     - /mnt/das/frigate/config:/config
+  #     - /mnt/das/frigate/media:/media/frigate
+  #     - /etc/localtime:/etc/localtime:ro
+  #   ports:
+  #     - "5000:5000"
+  #     - "8554:8554"
+  #     - "8555:8555/tcp"
+  #     - "8555:8555/udp"
+  #     - "8971:8971"
+  #   environment:
+  #     - TZ=America/Chicago
+  #     - GO2RTC_ALLOW_ARBITRARY_EXEC=true
+  #     - OMP_NUM_THREADS=8
+  #   restart: unless-stopped
 
   # ============================================================
   # PRIVATE BROWSER DESKTOP (Webtop)
