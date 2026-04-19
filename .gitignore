@@ -14,7 +14,7 @@
 **/secrets.yaml
 
 # Talos plaintext configs - NEVER commit these
-talosconfig
+talos-config
 controlplane.yaml
 worker.yaml
 kubeconfig

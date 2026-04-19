@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: beszel-agent
+  namespace: beszel
+spec:
+  selector:
+    matchLabels:
+      app: beszel-agent
+  template:
+    metadata:
+      labels:
+        app: beszel-agent
+    spec:
+      containers:
+        - name: agent
+          image: henrygd/beszel-agent:latest
+          env:
+            - name: KEY
+              valueFrom:
+                secretKeyRef:
+                  name: beszel-agent-key
+                  key: public-key
+            - name: PORT
+              value: "45876"
+          ports:
+            - containerPort: 45876
+              hostPort: 45876
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      hostNetwork: true
+      tolerations:
+        # Run on control plane nodes too
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
