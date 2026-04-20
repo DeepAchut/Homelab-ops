@@ -14,16 +14,20 @@ services:
       - TZ=America/Chicago
     restart: unless-stopped
 
-  mosquitto:
-    image: eclipse-mosquitto:latest
-    container_name: mosquitto
+  gotify:
+    image: gotify/server:2.6.3
+    container_name: gotify
+    environment:
+      - TZ=America/Chicago
+      - GOTIFY_SERVER_PORT=80
+      # Default user envs are ignored once the DB has an admin (old creds: admin/custom).
+      # Kept here only so a fresh install wouldn't silently use defaults.
+      - GOTIFY_DEFAULTUSER_NAME=admin
+      - GOTIFY_DEFAULTUSER_PASS=custom
     volumes:
-      - /var/lib/mosquitto/config:/mosquitto/config
-      - /var/lib/mosquitto/data:/mosquitto/data
-      - /var/lib/mosquitto/log:/mosquitto/log
+      - /mnt/das/gotify:/app/data
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - "8800:80"
     restart: unless-stopped
 
   nginx-proxy-manager:
