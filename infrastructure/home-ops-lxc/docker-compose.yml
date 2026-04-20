@@ -25,7 +25,7 @@ services:
       - GOTIFY_DEFAULTUSER_NAME=admin
       - GOTIFY_DEFAULTUSER_PASS=custom
     volumes:
-      - /mnt/das/gotify:/app/data
+      - /mnt/das/gotify/data:/app/data
     ports:
       - "8800:80"
     restart: unless-stopped
