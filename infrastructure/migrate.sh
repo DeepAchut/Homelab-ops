@@ -18,6 +18,7 @@ DRY_RUN=true # Set to false when you are ready for the real move!
 # "Source_Path | Destination_IP | Destination_Path"
 MAPPINGS=(
     # --- STORAGE LXC TARGETS ---
+    "/mnt/WD_HDD_1/n8n/ | $STORAGE_LXC_IP | /mnt/das/n8n/"
     # "/DATA/AppData/jellyfin/config/ | $STORAGE_LXC_IP | /mnt/das/jellyfin/config/"
     # "/mnt/wd-hdd-500/frigate/config/ | $STORAGE_LXC_IP | /mnt/das/frigate/config/"
     # "/mnt/wd-hdd-500/frigate/media/ | $STORAGE_LXC_IP | /mnt/das/frigate/media/"
@@ -29,7 +30,7 @@ MAPPINGS=(
     # "/mnt/tforce-ssd-raid/SSD-Raid/nextcloud_db/config/ | $MEDIA_AI_LXC_IP | /var/lib/nextcloud-db/"
     # "/mnt/sandisk-ssd-raid/Immich/pgdata/ | $MEDIA_AI_LXC_IP | /var/lib/immich-db/"
     # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/WWW/ | $MEDIA_AI_LXC_IP | /var/www/nextcloud/"
-    "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Data/deep/files/Notes/ObsidianNotes/ObsidianLiveSync/data/couchdb/ | $HOME_OPS_LXC_IP | /var/lib/obsidianLiveSync/couchdb/"
+    # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Data/deep/files/Notes/ObsidianNotes/ObsidianLiveSync/data/couchdb/ | $HOME_OPS_LXC_IP | /var/lib/obsidianLiveSync/couchdb/"
     # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Configs/ | $MEDIA_AI_LXC_IP | /var/www/nextcloud/config/"
     # "/mnt/tforce-ssd-raid/SSD-Raid/NextCloud/Apps/ | $MEDIA_AI_LXC_IP | /var/www/nextcloud/custom_apps/"
 
@@ -37,7 +38,7 @@ MAPPINGS=(
     # "/DATA/AppData/Wake-on-lan/data/ | $STORAGE_LXC_IP | /mnt/das/upsnap/data/"
     # "/DATA/AppData/big-bear-gotify/data/ | $STORAGE_LXC_IP | /mnt/das/gotify/data/"
     # "/DATA/AppData/uptimekuma/app/data/ | $STORAGE_LXC_IP | /mnt/das/uptimekuma/data/"
-    "/DATA/AppData/nginxproxymanager/ | $STORAGE_LXC_IP | /mnt/das/nginxproxymanager/"
+    # "/DATA/AppData/nginxproxymanager/ | $STORAGE_LXC_IP | /mnt/das/nginxproxymanager/"
     # "/mnt/wd-hdd-500/selkies/ | $STORAGE_LXC_IP | /mnt/das/selkies/"
     # "/mnt/wd-hdd-500/mosquitto/ | $STORAGE_LXC_IP | /mnt/das/mosquitto/"
     # # "/mnt/tforce-ssd-raid/SSD-Raid/vaultwarden/data/ | $STORAGE_LXC_IP | /mnt/das/vaultwarden/data/"
