@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: n8n
+  namespace: n8n
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: n8n-power-manager
+rules:
+  # Node power management: cordon/uncordon via patch, read status
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch"]
+  # Pod state: find Pending pods, list per-node for idle check
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  # Drain: evict pods
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+  # Replica scaling (Immich ML offload)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: n8n-power-manager
+subjects:
+  - kind: ServiceAccount
+    name: n8n
+    namespace: n8n
+roleRef:
+  kind: ClusterRole
+  name: n8n-power-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Long-lived token for n8n HTTP Request nodes to call the K8s API.
+# Mount via secretKeyRef and use as "Authorization: Bearer $(K8S_TOKEN)".
+apiVersion: v1
+kind: Secret
+metadata:
+  name: n8n-k8s-token
+  namespace: n8n
+  annotations:
+    kubernetes.io/service-account.name: n8n
+type: kubernetes.io/service-account-token

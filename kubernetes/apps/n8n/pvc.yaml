@@ -1,0 +1,84 @@
+---
+# n8n config (SQLite DB, workflows, credentials, runner-config.json)
+# Source dir on old server: /mnt/WD_HDD_1/n8n/
+# Target on storage LXC:   /mnt/das/n8n/config/
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: n8n-config-nfs
+  labels:
+    app: n8n
+    volume: config
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-storage
+  nfs:
+    server: 192.168.4.11
+    path: /mnt/das/n8n/config
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-config
+  namespace: n8n
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storage
+  resources:
+    requests:
+      storage: 10Gi
+  selector:
+    matchLabels:
+      app: n8n
+      volume: config
+---
+# n8n user data dir (/home/data — user files, attachments, long-lived artifacts)
+# Source dir on old server: /mnt/wd-hdd-500/n8nData/
+# Target on storage LXC:   /mnt/das/n8n/data/
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: n8n-data-nfs
+  labels:
+    app: n8n
+    volume: data
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-storage
+  nfs:
+    server: 192.168.4.11
+    path: /mnt/das/n8n/data
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data
+  namespace: n8n
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storage
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchLabels:
+      app: n8n
+      volume: data
