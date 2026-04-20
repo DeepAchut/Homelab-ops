@@ -1,7 +1,10 @@
 ---
 # n8n config (SQLite DB, workflows, credentials, runner-config.json)
 # Source dir on old server: /mnt/WD_HDD_1/n8n/
-# Target on storage LXC:   /mnt/das/n8n/config/
+# Target on Peladn host:   /mnt/pvedas/n8n/configuration/
+# NFS server runs on Peladn host (192.168.4.150), not the Storage LXC —
+# kernel nfsd inside an unprivileged LXC follows bind mounts back to the
+# host inode path and fails to export. See Phase 15 Part B.7 for context.
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -17,8 +20,8 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: nfs-storage
   nfs:
-    server: 192.168.4.11
-    path: /mnt/das/n8n/configuration
+    server: 192.168.4.150
+    path: /mnt/pvedas/n8n/configuration
   mountOptions:
     - nfsvers=4.1
     - hard
@@ -43,7 +46,7 @@ spec:
 ---
 # n8n user data dir (/home/data — user files, attachments, long-lived artifacts)
 # Source dir on old server: /mnt/wd-hdd-500/n8nData/
-# Target on storage LXC:   /mnt/das/n8n/data/
+# Target on Peladn host:   /mnt/pvedas/n8n/data/
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -59,8 +62,8 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: nfs-storage
   nfs:
-    server: 192.168.4.11
-    path: /mnt/das/n8n/data
+    server: 192.168.4.150
+    path: /mnt/pvedas/n8n/data
   mountOptions:
     - nfsvers=4.1
     - hard
