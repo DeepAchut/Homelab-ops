@@ -1,0 +1,8 @@
+machine:
+  time:
+    disabled: false
+    servers:
+      - 192.168.4.1
+      - time.cloudflare.com
+      - pool.ntp.org
+    bootTimeout: 2m0s
