@@ -2,3 +2,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: beszel
+  labels:
+    # beszel-agent DaemonSet needs hostNetwork + hostPort to read per-node
+    # system stats. That violates the baseline PodSecurity profile, so we
+    # exempt this namespace to privileged. Only beszel runs here.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
