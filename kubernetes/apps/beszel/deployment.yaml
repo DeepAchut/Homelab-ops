@@ -17,7 +17,7 @@ spec:
         tier: always-on
       containers:
         - name: beszel
-          image: henrygd/beszel:latest
+          image: henrygd/beszel:0.18.7
           ports:
             - containerPort: 8090
           volumeMounts:
