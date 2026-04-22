@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: agent
-          image: henrygd/beszel-agent:latest
+          image: henrygd/beszel-agent:0.18.7
           env:
             - name: KEY
               valueFrom:
