@@ -7,7 +7,7 @@ services:
       - /var/lib/homeassistant/config:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
-      - /mnt/wd-ext-hdd/homeassistant:/mnt/wd-ext-hdd/homeassistant  # Camera recordings (Phase 13)
+      - /mnt/wd-ext-hdd/homeassistant:/config/www/wd-ext-hdd # Camera recordings (Phase 13)
     # devices:
     #   - /dev/ttyUSB0:/dev/ttyUSB0  # Uncomment when Zigbee/Matter USB stick is plugged in
     environment:
