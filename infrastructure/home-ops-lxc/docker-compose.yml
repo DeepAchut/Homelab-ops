@@ -91,6 +91,21 @@ services:
       - /var/lib/upsnap/data:/app/pb_data
     restart: unless-stopped
 
+  esphome:
+    image: ghcr.io/esphome/esphome:latest
+    container_name: esphome
+    network_mode: host             # must be host so it can reach ESP32 devices on LAN
+    volumes:
+      - /var/lib/esphome/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    # Uncomment for initial USB serial flash; not needed after OTA is set up.
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    #   - /dev/ttyACM0:/dev/ttyACM0   # alternative on some systems
+    environment:
+      - TZ=America/Chicago
+    restart: unless-stopped
+
   obsidian-livesync:
     image: couchdb:3.5.0
     container_name: obsidian-livesync
