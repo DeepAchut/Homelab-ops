@@ -95,6 +95,7 @@ services:
       - OVERWRITEPROTOCOL=https
       - PHP_MEMORY_LIMIT=2G
       - PHP_UPLOAD_LIMIT=100G
+      - APACHE_BODY_LIMIT=0
       - REDIS_HOST=nextcloud-redis
       - REDIS_PORT=6379
     ports:
