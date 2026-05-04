@@ -8,7 +8,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
       - /mnt/wd-ext-hdd/homeassistant:/config/www/wd-ext-hdd  # Camera recordings (Phase 13)
-      - /mnt/sg-ext-hdd/homeassistant/backups:/config/backups  # HA backups on sg-ext HDD
+      - /mnt/sg-ext-hdd/homeassistant/backups:/config/backups      # HA backups on sg-ext HDD
+      - /mnt/sg-ext-hdd/homeassistant/tmp_backups:/config/tmp_backups  # Temp workspace during backup creation
     # devices:
     #   - /dev/ttyUSB0:/dev/ttyUSB0  # Uncomment when Zigbee/Matter USB stick is plugged in
     environment:
