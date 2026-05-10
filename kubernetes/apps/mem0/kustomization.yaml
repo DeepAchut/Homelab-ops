@@ -15,5 +15,5 @@ resources:
   - server/configmap.yaml
   - server/deployment.yaml
   - server/service.yaml
-  - mcp/deployment.yaml
-  - mcp/service.yaml
+  # mcp/deployment.yaml — disabled, image does not exist yet
+  # mcp/service.yaml

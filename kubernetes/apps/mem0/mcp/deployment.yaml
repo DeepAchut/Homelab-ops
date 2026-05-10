@@ -1,33 +1,37 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mem0-mcp
-  namespace: mem0
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mem0-mcp
-  template:
-    metadata:
-      labels:
-        app: mem0-mcp
-    spec:
-      nodeSelector:
-        kubernetes.io/hostname: ira-rpi4-talos-worker
-      containers:
-        - name: mcp-bridge
-          image: mem0ai/openmemory-mcp:latest
-          env:
-            - name: MEM0_SERVER_URL
-              value: http://mem0-server.mem0:8000
-          ports:
-            - containerPort: 8080 # Assuming 8080, adjust if known
-              name: http
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+# mem0-mcp deployment disabled — mem0ai/openmemory-mcp image does not exist.
+# Re-enable when an official MCP image is available or build from:
+# https://github.com/mem0ai/mem0/tree/main/openmemory
+#
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: mem0-mcp
+#   namespace: mem0
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: mem0-mcp
+#   template:
+#     metadata:
+#       labels:
+#         app: mem0-mcp
+#     spec:
+#       nodeSelector:
+#         kubernetes.io/hostname: ira-rpi4-talos-worker
+#       containers:
+#         - name: mcp-bridge
+#           image: mem0ai/openmemory-mcp:latest
+#           env:
+#             - name: MEM0_SERVER_URL
+#               value: http://mem0-server.mem0:8000
+#           ports:
+#             - containerPort: 8080
+#               name: http
+#           resources:
+#             requests:
+#               cpu: 50m
+#               memory: 64Mi
+#             limits:
+#               cpu: 200m
+#               memory: 128Mi
