@@ -16,6 +16,19 @@ if db_url:
 
 memory = Memory.from_config(config)
 
+# mem0ai doesn't create the Qdrant collection at init — only on first write,
+# which searches before inserting and 404s on a fresh/deleted collection.
+_vs = memory.vector_store
+_existing = {c.name for c in _vs.client.get_collections().collections}
+if _vs.collection_name not in _existing:
+    _embed_dims = (
+        config.get("vector_store", {}).get("config", {}).get("embedding_model_dims", 768)
+    )
+    _vs.client.create_collection(
+        collection_name=_vs.collection_name,
+        vectors_config=VectorParams(size=_embed_dims, distance=Distance.COSINE),
+    )
+
 app = FastAPI(title="mem0 API Server")
 
 
