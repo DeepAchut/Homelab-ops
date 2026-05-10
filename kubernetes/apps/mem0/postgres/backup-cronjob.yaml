@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: mem0
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-dump
+              image: pgvector/pgvector:pg17
+              envFrom:
+                - secretRef:
+                    name: postgres-creds
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
+                    -h postgres.mem0.svc.cluster.local \
+                    -U "$POSTGRES_USER" \
+                    -d "$POSTGRES_DB" \
+                    -F c \
+                    -f /backup/mem0-${TS}.dump
+                  # retention: keep last 14
+                  ls -1t /backup/mem0-*.dump | tail -n +15 | xargs -r rm -f
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              nfs:
+                server: 192.168.4.150
+                path: /mnt/pvedas/mem0-backups/postgres

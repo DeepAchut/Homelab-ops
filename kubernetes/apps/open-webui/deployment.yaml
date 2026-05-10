@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-webui
+  namespace: open-webui
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: open-webui
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ira-rpi4-talos-worker
+      containers:
+        - name: open-webui
+          image: ghcr.io/open-webui/open-webui:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: OLLAMA_BASE_URL
+              value: "http://192.168.4.110:11434"
+            - name: WEBUI_SECRET_KEY
+              value: "super-secret-key-change-me" # Should be in a secret
+            - name: DATA_DIR
+              value: /app/backend/data
+          volumeMounts:
+            - name: data
+              mountPath: /app/backend/data
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: open-webui-data

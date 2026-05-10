@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mem0-server
+  namespace: mem0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mem0-server
+  template:
+    metadata:
+      labels:
+        app: mem0-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ira-rpi4-talos-worker
+      containers:
+        - name: mem0-server
+          image: mem0ai/mem0:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: MEM0_CONFIG_PATH
+              value: /app/config/config.yaml
+            # Add other env vars if needed
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: mem0-server-config

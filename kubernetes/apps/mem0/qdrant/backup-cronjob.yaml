@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: qdrant-backup
+  namespace: mem0
+spec:
+  schedule: "15 3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: qdrant-snapshot
+              image: curlimages/curl:8.10.1
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  # list collections, snapshot each
+                  COLLS=$(curl -s http://qdrant.mem0:6333/collections | \
+                    sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+                  for C in $COLLS; do
+                    curl -s -X POST "http://qdrant.mem0:6333/collections/$C/snapshots" > /tmp/$C.json
+                    SNAP=$(sed -n 's/.*"name":"\([^"]*\)".*/\1/p' /tmp/$C.json | head -1)
+                    curl -s "http://qdrant.mem0:6333/collections/$C/snapshots/$SNAP" \
+                      -o "/backup/${C}-${TS}.snapshot"
+                  done
+                  ls -1t /backup/*.snapshot 2>/dev/null | tail -n +15 | xargs -r rm -f
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              nfs:
+                server: 192.168.4.150
+                path: /mnt/pvedas/mem0-backups/qdrant
