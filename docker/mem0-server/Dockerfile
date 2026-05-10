@@ -3,7 +3,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN pip install --no-cache-dir \
-    "mem0ai[ollama]==0.1.118" \
+    mem0ai==0.1.118 \
+    ollama \
     fastapi==0.136.1 \
     uvicorn==0.34.3 \
     pyyaml==6.0.2 \
