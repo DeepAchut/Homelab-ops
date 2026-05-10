@@ -1,0 +1,43 @@
+name: Build mem0-server
+
+on:
+  push:
+    paths:
+      - docker/mem0-server/**
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/mem0-server
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/deepachut/mem0-server:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
