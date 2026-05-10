@@ -17,7 +17,7 @@ spec:
         kubernetes.io/hostname: ira-rpi4-talos-worker
       containers:
         - name: mem0-server
-          image: mem0/mem0-api-server:latest
+          image: deepkchhaiya/mem0-server:latest
           ports:
             - containerPort: 8000
               name: http
@@ -33,6 +33,20 @@ spec:
             - name: config
               mountPath: /app/config
               readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m

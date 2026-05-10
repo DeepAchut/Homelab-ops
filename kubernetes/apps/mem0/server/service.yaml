@@ -9,5 +9,6 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
+      nodePort: 30800
       name: http
-  type: ClusterIP
+  type: NodePort
