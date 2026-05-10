@@ -8,7 +8,7 @@ data:
     llm:
       provider: "ollama"
       config:
-        model: "qwen2.5:0.5b"
+        model: "qwen2.5:7b"
         ollama_base_url: "http://192.168.4.12:11434"
     embedder:
       provider: "ollama"
@@ -21,4 +21,5 @@ data:
         host: "qdrant.mem0.svc.cluster.local"
         port: 6333
         collection_name: "mem0"
+        embedding_model_dims: 768
     version: "v1.1"
