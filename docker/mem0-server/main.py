@@ -4,6 +4,7 @@ from mem0 import Memory
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Any
+from qdrant_client.models import Distance, VectorParams
 
 config_path = os.getenv("MEM0_CONFIG_PATH", "/app/config/config.yaml")
 with open(config_path) as f:
@@ -14,6 +15,18 @@ if db_url:
     config["history_db_url"] = db_url
 
 memory = Memory.from_config(config)
+
+# mem0ai doesn't create the Qdrant collection at init — only on first write,
+# which searches before inserting and 404s. Pre-create it here.
+_vs = memory.vector_store
+_collection = _vs.collection_name
+_existing = {c.name for c in _vs.client.get_collections().collections}
+if _collection not in _existing:
+    _vs.client.create_collection(
+        collection_name=_collection,
+        vectors_config=VectorParams(size=768, distance=Distance.COSINE),
+    )
+
 app = FastAPI(title="mem0 API Server")
 
 
