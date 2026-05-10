@@ -8,13 +8,13 @@ data:
     llm:
       provider: "ollama"
       config:
-        model: "gemma4:e4b"
-        ollama_base_url: "http://192.168.4.110:11434"
+        model: "qwen2.5:0.5b"
+        ollama_base_url: "http://192.168.4.12:11434"
     embedder:
       provider: "ollama"
       config:
         model: "nomic-embed-text"
-        ollama_base_url: "http://192.168.4.110:11434"
+        ollama_base_url: "http://192.168.4.12:11434"
     vector_store:
       provider: "qdrant"
       config:
