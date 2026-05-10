@@ -25,7 +25,10 @@ spec:
             - name: MEM0_CONFIG_PATH
               value: /app/config/config.yaml
             - name: DATABASE_URL
-              value: postgresql://deep:***REDACTED***@postgres.mem0.svc.cluster.local:5432/mem0
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-creds
+                  key: DATABASE_URL
           volumeMounts:
             - name: config
               mountPath: /app/config
