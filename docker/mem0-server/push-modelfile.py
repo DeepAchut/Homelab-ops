@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
 """
-Push gemma4-mem0 Modelfile to Ollama on media-ai-ops-lxc.
-Run this after any changes to the Modelfile system prompt.
+Push gemma4-mem0 to Ollama using the structured create API.
 
-Usage: python3 push-modelfile.py
+Setup:
+  1. Copy personal-context.txt.example → personal-context.txt
+  2. Fill in your personal context
+  3. Set OLLAMA_URL if your Ollama is not at the default below
+  4. Run: python3 push-modelfile.py
+
+personal-context.txt is gitignored — keep personal details out of the repo.
 """
-import json, urllib.request, urllib.error, sys
+import json, sys, urllib.request, urllib.error
+from pathlib import Path
 
 OLLAMA_URL = "http://192.168.4.12:11434"
 MODEL_NAME = "gemma4-mem0"
 BASE_MODEL = "gemma4:e2b"
 
-SYSTEM_PROMPT = """\
-You are a personal memory intelligence engine for Deep — a senior infrastructure engineer, homelab architect, and platform engineer based in Australia.
+BASE_PROMPT = """\
+You are a personal memory intelligence engine for {{USER_NAME}}.
 
-Your sole function is to extract structured, durable facts from conversations and output them as valid JSON. You MUST:
-- Output ONLY valid JSON. No explanations, no markdown fences, no preamble, no postamble.
-- Extract facts worth remembering across sessions: personal details, technical preferences, project decisions, infrastructure configs, goals, and lessons learned.
-- Ignore transient or ephemeral content: in-progress commands, build output, one-time debugging steps.
+Your sole function is to extract structured, durable facts from conversations
+and output them as valid JSON. You MUST:
+- Output ONLY valid JSON. No explanations, no markdown fences, no preamble.
+- Extract facts worth remembering across sessions: personal details, technical
+  preferences, project decisions, infrastructure configs, goals, lessons learned.
+- Ignore transient content: in-progress commands, build output, one-shot steps.
 - If nothing worth remembering is found, output: {}
 
-Deep's context (use to assess relevance):
-- Homelab: Proxmox + Talos K8s, RPi4 always-on worker, Peladn 8845HS always-on CP (AMD 780M iGPU), i9-14900K+RTX5070 and Intel NUC (both WOL on-demand burst)
-- GitOps: Flux CD, SOPS+Age secrets, public GitHub repo DeepAchut/Homelab-ops
-- AI memory: mem0 on RPi4 K8s, Ollama on media-ai-ops-lxc AMD 780M ROCm, nomic-embed-text 768 dims
-- Work: Senior engineer at Wasabi (ML/AI customer case documents), 10+ yrs networking/DevOps/cloud, H-1B visa, approved I-140, relocating to Sydney Australia
-- Personal: Indian citizen, currently in US on H-1B visa (relocating to Sydney Australia), lives with wife and 1-year-old child. Mom is an Indian citizen. Brother lives in Australia.
-- 3D printing: Elegoo Centauri Carbon, FreeCAD ONLY — never OpenSCAD, always output .FCMacro files
-- Networking: OPNsense firewall, IPv6 disabled, Frontier 500 Mbps ISP
-- Home automation: Home Assistant + Frigate, arlo-cam-api + MediaMTX for RTSP, Mushroom cards, advanced-camera-card
+{{PERSONAL_CONTEXT}}
 
 Prioritize extracting:
 1. Technical decisions and their rationale (chose X over Y because Z)
@@ -39,16 +39,44 @@ Prioritize extracting:
 6. Corrections to previously wrong assumptions
 
 Never extract:
-- Passwords, tokens, secrets, API keys, or Age keys
+- Passwords, tokens, secrets, API keys, or private keys
 - Temporary debugging output or one-shot commands
 - Information the user already explicitly knows about themselves\
 """
 
-def main():
+
+def load_personal_context() -> tuple[str, str]:
+    """Return (user_name, personal_context) from local personal-context.txt."""
+    ctx_file = Path(__file__).parent / "personal-context.txt"
+    if not ctx_file.exists():
+        print(
+            "Warning: personal-context.txt not found. "
+            "Copy personal-context.txt.example and fill it in.",
+            file=sys.stderr,
+        )
+        return "the user", "(no personal context configured)"
+    text = ctx_file.read_text(encoding="utf-8").strip()
+    # First non-comment, non-empty line treated as user name if it starts with "name:"
+    user_name = "the user"
+    for line in text.splitlines():
+        line = line.strip()
+        if line.lower().startswith("name:"):
+            user_name = line.split(":", 1)[1].strip()
+            break
+    return user_name, text
+
+
+def main() -> None:
+    user_name, personal_context = load_personal_context()
+    system_prompt = (
+        BASE_PROMPT.replace("{{USER_NAME}}", user_name)
+                   .replace("{{PERSONAL_CONTEXT}}", personal_context)
+    )
+
     payload = json.dumps({
         "model": MODEL_NAME,
         "from": BASE_MODEL,
-        "system": SYSTEM_PROMPT,
+        "system": system_prompt,
         "parameters": {
             "temperature": 0.1,
             "top_p": 0.9,
@@ -70,6 +98,7 @@ def main():
     except urllib.error.HTTPError as e:
         print(f"FAIL {e.code}: {e.read().decode()}", file=sys.stderr)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

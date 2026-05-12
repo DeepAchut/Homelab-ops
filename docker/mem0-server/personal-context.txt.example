@@ -1,0 +1,23 @@
+# personal-context.txt.example
+#
+# Copy this file to personal-context.txt (gitignored) and fill in your details.
+# This content is injected into the gemma4-mem0 system prompt at deploy time.
+# It tells the LLM who you are so it extracts only relevant, durable memories.
+#
+# Run `python3 push-modelfile.py` after editing to update the Ollama model.
+
+Your context:
+- Homelab stack: <describe your nodes, always-on vs WOL, K8s setup>
+- GitOps: <Flux/ArgoCD, secrets approach>
+- Work: <your role, domain expertise, years of experience>
+- Personal: <location, relevant background>
+- Tools: <strong preferences, e.g. FreeCAD not OpenSCAD>
+- Goals: <what you're working toward>
+
+Example:
+- Homelab: Proxmox + Talos K8s, RPi4 always-on worker, 8845HS always-on CP, i9+GPU and NUC as WOL burst
+- GitOps: Flux CD, SOPS+Age secrets, public GitHub repo
+- Work: Senior platform engineer, 10+ years networking/DevOps/cloud
+- Personal: Currently in <country>, relocating to <country>
+- Tools: FreeCAD only for 3D printing, OPNsense for networking
+- Goals: <pilot license, consulting business, etc.>

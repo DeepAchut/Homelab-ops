@@ -1,0 +1,34 @@
+name: Lint K8s Manifests
+
+on:
+  push:
+    paths:
+      - "kubernetes/**"
+  pull_request:
+    paths:
+      - "kubernetes/**"
+
+jobs:
+  kube-linter:
+    name: kube-linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run kube-linter
+        uses: stackrox/kube-linter-action@v1
+        with:
+          directory: kubernetes/apps
+          config: .kube-linter.yaml
+
+  yaml-lint:
+    name: yaml-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: yamllint -c .yamllint.yaml kubernetes/apps/

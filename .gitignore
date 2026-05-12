@@ -18,3 +18,10 @@ talos-config
 controlplane.yaml
 worker.yaml
 kubeconfig
+
+# mem0 personal intelligence model - contains personal context, use template instead
+docker/mem0-server/Modelfile
+docker/mem0-server/personal-context.txt
+
+# Local environment overrides
+cluster.env

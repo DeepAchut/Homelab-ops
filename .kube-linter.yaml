@@ -1,0 +1,13 @@
+checks:
+  # Start from the default set and selectively disable checks
+  # that don't apply to a homelab GitOps context
+  addAllBuiltIn: true
+  exclude:
+    # Homelab services intentionally use host networking / privileged for
+    # hardware passthrough (NUT UPS, Beszel agents). Not a real finding.
+    - "no-read-only-root-fs"
+    # Resource limits are set per-service where meaningful.
+    # Some DaemonSets intentionally omit limits for monitoring agents.
+    - "unset-cpu-requirements"
+    # NodePort services are intentional — NPM reverse proxy sits in front.
+    - "no-extensions-v1beta"
