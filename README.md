@@ -13,16 +13,16 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 │  Tier 1 — Always-On (24/7)                                      │
 │  Peladn 8845HS · 32 GB · AMD 780M                               │
 │  ├── Talos K8s Control Plane VM                                 │
-│  ├── home-ops-lxc  · HA · NPM · Vaultwarden · ESPHome          │
-│  └── media-ai-ops-lxc · Nextcloud · Immich · Ollama (ROCm)     │
+│  ├── home-ops-lxc  · HA · NPM · Vaultwarden · ESPHome           │
+│  └── media-ai-ops-lxc · Nextcloud · Immich · Ollama (ROCm)      │
 │                                                                 │
 │  RPi4 · 4 GB · ARM64                                            │
-│  └── Talos K8s Worker · mem0 · n8n · miniflux · beszel         │
+│  └── Talos K8s Worker · mem0 · n8n · miniflux · beszel          │
 ├─────────────────────────────────────────────────────────────────┤
 │  Tier 2 — On-Demand WOL                                         │
-│  Intel NUC  · Talos K8s Worker · general burst                 │
-│  Dell R610  · Talos K8s Worker · heavy compute                 │
-│  i9-14900K  · RTX 5070 · Talos Worker + Ollama CUDA            │
+│  Intel NUC  · Talos K8s Worker · general burst                  │
+│  Dell R610  · Talos K8s Worker · heavy compute                  │
+│  i9-14900K  · RTX 5070 · Talos Worker + Ollama CUDA             │
 └─────────────────────────────────────────────────────────────────┘
                   │ GitOps (Flux CD)
           ┌───────┴────────────────┐
