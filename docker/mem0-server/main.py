@@ -28,7 +28,16 @@ if "think" in inspect.signature(ollama.Client.chat).parameters:
 
     def _chat_no_think(self, *args, **kwargs):
         kwargs.setdefault("think", False)
-        return _orig_chat(self, *args, **kwargs)
+        resp = _orig_chat(self, *args, **kwargs)
+        try:
+            msgs = kwargs.get("messages", [])
+            tail = msgs[-1]["content"][-160:] if msgs else ""
+            content = resp["message"]["content"] if isinstance(resp, dict) else resp.message.content
+            logger.info("OLLAMA chat opts=%s think=%s | prompt-tail=%r | resp=%r",
+                        kwargs.get("options"), kwargs.get("think"), tail, content[:500])
+        except Exception as exc:  # diagnostic logging must never break the call
+            logger.warning("chat-logging failed: %s", exc)
+        return resp
 
     ollama.Client.chat = _chat_no_think
     logger.info("patched ollama.Client.chat with think=False")
