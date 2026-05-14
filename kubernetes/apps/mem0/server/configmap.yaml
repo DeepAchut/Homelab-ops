@@ -13,7 +13,7 @@ data:
     embedder:
       provider: "ollama"
       config:
-        model: "nomic-embed-text"
+        model: "qwen3-embedding:0.6b"
         ollama_base_url: "http://192.168.4.12:11434"
     vector_store:
       provider: "qdrant"
@@ -21,5 +21,5 @@ data:
         host: "qdrant.mem0.svc.cluster.local"
         port: 6333
         collection_name: "mem0"
-        embedding_model_dims: 768
+        embedding_model_dims: 1024
     version: "v1.1"
