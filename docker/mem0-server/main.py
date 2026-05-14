@@ -1,35 +1,68 @@
+import logging
 import os
+from contextlib import asynccontextmanager
+from typing import List, Optional
+
 import yaml
-from mem0 import Memory
 from fastapi import FastAPI, HTTPException
+from mem0 import Memory
 from pydantic import BaseModel
-from typing import Optional, List, Any
 from qdrant_client.models import Distance, VectorParams
 
-config_path = os.getenv("MEM0_CONFIG_PATH", "/app/config/config.yaml")
-with open(config_path) as f:
-    config = yaml.safe_load(f)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("mem0-server")
 
-db_url = os.getenv("DATABASE_URL")
-if db_url:
-    config["history_db_url"] = db_url
+_state: dict = {"memory": None}
 
-memory = Memory.from_config(config)
 
-# mem0ai doesn't create the Qdrant collection at init — only on first write,
-# which searches before inserting and 404s on a fresh/deleted collection.
-_vs = memory.vector_store
-_existing = {c.name for c in _vs.client.get_collections().collections}
-if _vs.collection_name not in _existing:
-    _embed_dims = (
-        config.get("vector_store", {}).get("config", {}).get("embedding_model_dims", 768)
-    )
-    _vs.client.create_collection(
-        collection_name=_vs.collection_name,
-        vectors_config=VectorParams(size=_embed_dims, distance=Distance.COSINE),
-    )
+def _build_memory() -> Memory:
+    config_path = os.getenv("MEM0_CONFIG_PATH", "/app/config/config.yaml")
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
 
-app = FastAPI(title="mem0 API Server")
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        config["history_db_url"] = db_url
+
+    memory = Memory.from_config(config)
+
+    # mem0ai doesn't create the Qdrant collection at init — only on first write,
+    # which searches before inserting and 404s on a fresh/deleted collection.
+    vs = memory.vector_store
+    existing = {c.name for c in vs.client.get_collections().collections}
+    if vs.collection_name not in existing:
+        dims = (
+            config.get("vector_store", {}).get("config", {}).get("embedding_model_dims", 768)
+        )
+        vs.client.create_collection(
+            collection_name=vs.collection_name,
+            vectors_config=VectorParams(size=dims, distance=Distance.COSINE),
+        )
+        logger.info("created Qdrant collection '%s' (dims=%s)", vs.collection_name, dims)
+
+    return memory
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("initializing mem0 Memory...")
+    _state["memory"] = _build_memory()
+    logger.info("mem0 Memory ready")
+    yield
+    _state["memory"] = None
+
+
+app = FastAPI(title="mem0 API Server", lifespan=lifespan)
+
+
+def get_memory() -> Memory:
+    memory = _state["memory"]
+    if memory is None:
+        raise HTTPException(status_code=503, detail="memory not initialized")
+    return memory
 
 
 class AddRequest(BaseModel):
@@ -50,18 +83,23 @@ class SearchRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "memory_ready": _state["memory"] is not None}
 
 
 @app.post("/v1/memories")
 def add_memories(req: AddRequest):
-    return memory.add(
-        req.messages,
-        user_id=req.user_id,
-        agent_id=req.agent_id,
-        run_id=req.run_id,
-        metadata=req.metadata,
-    )
+    memory = get_memory()
+    try:
+        return memory.add(
+            req.messages,
+            user_id=req.user_id,
+            agent_id=req.agent_id,
+            run_id=req.run_id,
+            metadata=req.metadata,
+        )
+    except Exception as e:
+        logger.exception("add_memories failed")
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}")
 
 
 @app.get("/v1/memories")
@@ -70,27 +108,47 @@ def get_memories(
     agent_id: Optional[str] = None,
     run_id: Optional[str] = None,
 ):
-    return memory.get_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
+    memory = get_memory()
+    try:
+        return memory.get_all(user_id=user_id, agent_id=agent_id, run_id=run_id)
+    except Exception as e:
+        logger.exception("get_memories failed")
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}")
 
 
 @app.post("/v1/memories/search")
 def search_memories(req: SearchRequest):
-    return memory.search(
-        req.query,
-        user_id=req.user_id,
-        agent_id=req.agent_id,
-        run_id=req.run_id,
-        limit=req.limit,
-    )
+    memory = get_memory()
+    try:
+        return memory.search(
+            req.query,
+            user_id=req.user_id,
+            agent_id=req.agent_id,
+            run_id=req.run_id,
+            limit=req.limit,
+        )
+    except Exception as e:
+        logger.exception("search_memories failed")
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}")
 
 
 @app.delete("/v1/memories/{memory_id}")
 def delete_memory(memory_id: str):
-    memory.delete(memory_id)
-    return {"message": "Memory deleted", "id": memory_id}
+    memory = get_memory()
+    try:
+        memory.delete(memory_id)
+        return {"message": "Memory deleted", "id": memory_id}
+    except Exception as e:
+        logger.exception("delete_memory failed")
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}")
 
 
 @app.delete("/v1/memories")
 def delete_all_memories(user_id: str = "default"):
-    memory.delete_all(user_id=user_id)
-    return {"message": "All memories deleted for user", "user_id": user_id}
+    memory = get_memory()
+    try:
+        memory.delete_all(user_id=user_id)
+        return {"message": "All memories deleted for user", "user_id": user_id}
+    except Exception as e:
+        logger.exception("delete_all_memories failed")
+        raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}")

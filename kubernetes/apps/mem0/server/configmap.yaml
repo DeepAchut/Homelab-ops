@@ -8,7 +8,7 @@ data:
     llm:
       provider: "ollama"
       config:
-        model: "gemma4-mem0"
+        model: "qwen3:4b"
         ollama_base_url: "http://192.168.4.12:11434"
     embedder:
       provider: "ollama"
