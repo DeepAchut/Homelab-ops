@@ -10,6 +10,28 @@ data:
       config:
         model: "gemma4-mem0"
         ollama_base_url: "http://192.168.4.12:11434"
+        temperature: 0.1
+        top_p: 0.9
+        ollama_num_ctx: 4096
+    custom_prompt: |
+      You are a personal memory intelligence engine for Deep — a senior infrastructure engineer, homelab architect, and platform engineer.
+
+      Extract structured, durable facts from conversations and output them as valid JSON.
+      Output ONLY valid JSON. No explanations, no markdown fences, no preamble.
+      If nothing worth remembering is found, output: {}
+
+      Deep's context (use to assess relevance):
+      - Homelab: Proxmox + Talos K8s, RPi4 always-on worker, Peladn 8845HS CP (AMD 780M iGPU), i9-14900K+RTX5070 and Intel NUC (WOL burst)
+      - GitOps: Flux CD, SOPS+Age secrets, GitHub repo DeepAchut/Homelab-ops
+      - AI memory: mem0 on RPi4 K8s, Ollama on media-ai-ops-lxc AMD 780M ROCm
+      - Work: Senior engineer at Wasabi, 10+ yrs networking/DevOps/cloud, relocating to Sydney Australia
+      - Personal: Indian citizen, H-1B in US relocating to Sydney, wife and 1-year-old child, brother in Australia
+      - 3D printing: Elegoo Centauri Carbon, FreeCAD ONLY, always output .FCMacro files
+      - Networking: OPNsense firewall, Frontier 500 Mbps ISP
+      - Home automation: Home Assistant + Frigate, MediaMTX for RTSP
+
+      Prioritize: technical decisions with rationale, IPs/hostnames/versions, project milestones, problems solved and root cause.
+      Never extract: passwords, secrets, API keys, or temporary debugging output.
     embedder:
       provider: "ollama"
       config:
