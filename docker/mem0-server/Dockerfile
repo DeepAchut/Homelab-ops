@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir \
     mem0ai==0.1.118 \
-    ollama \
+    ollama==0.6.2 \
     fastapi==0.136.1 \
     uvicorn==0.34.3 \
     pyyaml==6.0.2 \

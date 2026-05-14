@@ -1,8 +1,10 @@
+import inspect
 import logging
 import os
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
+import ollama
 import yaml
 from fastapi import FastAPI, HTTPException
 from mem0 import Memory
@@ -14,6 +16,22 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 logger = logging.getLogger("mem0-server")
+
+# qwen3 enables thinking by default. With format=json the model's answer lands
+# in the response's `thinking` field and `content` comes back empty, so mem0's
+# json.loads() fails and silently extracts zero facts. Passing think=False via
+# the API is the only reliable way to disable it (Modelfile PARAMETER and
+# /no_think in the prompt do not work). mem0 calls ollama.Client.chat() for the
+# LLM; embeddings go through a different method, so this only affects the LLM.
+if "think" in inspect.signature(ollama.Client.chat).parameters:
+    _orig_chat = ollama.Client.chat
+
+    def _chat_no_think(self, *args, **kwargs):
+        kwargs.setdefault("think", False)
+        return _orig_chat(self, *args, **kwargs)
+
+    ollama.Client.chat = _chat_no_think
+    logger.info("patched ollama.Client.chat with think=False")
 
 _state: dict = {"memory": None}
 
