@@ -7,3 +7,4 @@ resources:
   - nut
   - mem0
   - open-webui
+  - monitoring

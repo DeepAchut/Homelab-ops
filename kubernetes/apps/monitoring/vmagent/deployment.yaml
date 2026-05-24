@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vmagent
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vmagent
+  template:
+    metadata:
+      labels:
+        app: vmagent
+    spec:
+      serviceAccountName: vmagent
+      nodeSelector:
+        kubernetes.io/hostname: ira-rpi4-talos-worker   # always-on worker (survives WOL nodes sleeping)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: vmagent
+          image: victoriametrics/vmagent:v1.143.0       # multi-arch (arm64 for RPi4)
+          args:
+            - "--promscrape.config=/config/scrape.yaml"
+            - "--remoteWrite.url=http://192.168.4.66:8428/api/v1/write"
+            - "--remoteWrite.tmpDataPath=/vmagent-data"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /vmagent-data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 192Mi
+      volumes:
+        - name: config
+          configMap:
+            name: vmagent-config
+        - name: data
+          emptyDir: {}

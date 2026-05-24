@@ -1,0 +1,39 @@
+# VictoriaMetrics promscrape config (Tier 1).
+# VM also receives remote_write from the K8s vmagent (kubernetes/apps/monitoring).
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: victoriametrics
+    static_configs:
+      - targets: ["127.0.0.1:8428"]
+        labels: { host: "observability-lxc" }
+
+  - job_name: node-observability-lxc
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels: { host: "observability-lxc" }
+
+  - job_name: node-evox2
+    static_configs:
+      - targets: ["192.168.4.84:9100"]
+        labels: { host: "evox2" }
+
+  - job_name: node-peladn
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["192.168.4.150:9100"]
+        labels: { host: "peladn" }
+
+  - job_name: node-home-ops-lxc
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["192.168.4.13:9100"]
+        labels: { host: "home-ops-lxc" }
+
+  - job_name: node-media-ai-ops-lxc
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["192.168.4.12:9100"]
+        labels: { host: "media-ai-ops-lxc" }

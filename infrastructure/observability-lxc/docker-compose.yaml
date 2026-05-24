@@ -1,0 +1,100 @@
+# Observability stack — CT405 (hl-observability-lxc) on Evo-X2.
+# Metrics : VictoriaMetrics (scrapes node_exporters + receives vmagent remote_write from K8s)
+# Logs    : Loki (+ Grafana Alloy shipper, added alongside)
+# Viz     : Grafana (datasources auto-provisioned)
+# Deploy  : clone this repo in CT405, `cp .env.example .env` (set Grafana pw), `docker compose up -d`.
+services:
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.143.0
+    container_name: victoriametrics
+    restart: unless-stopped
+    ports:
+      - "8428:8428"
+    volumes:
+      - vm-data:/storage
+      - ./scrape.yaml:/etc/vm/scrape.yaml:ro
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=90d"
+      - "--promscrape.config=/etc/vm/scrape.yaml"
+      - "--httpListenAddr=0.0.0.0:8428"
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  loki:
+    image: grafana/loki:3.7.2
+    container_name: loki
+    restart: unless-stopped
+    user: "0"   # custom data path /data/loki isn't pre-owned in the image; run as root to write it
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/data/loki
+      - ./loki.yaml:/etc/loki/loki.yaml:ro
+    command: -config.file=/etc/loki/loki.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+  grafana:
+    image: grafana/grafana:13.0.1
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - victoriametrics
+      - loki
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  node-exporter:
+    image: prom/node-exporter:v1.11.1
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+
+  alloy:
+    image: grafana/alloy:v1.16.1
+    container_name: alloy
+    restart: unless-stopped
+    user: root   # needs to read /var/run/docker.sock (root:docker, mode 660)
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    depends_on:
+      - loki
+
+volumes:
+  vm-data:
+  loki-data:
+  grafana-data:
+  alloy-data:
