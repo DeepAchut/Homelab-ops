@@ -19,6 +19,23 @@ loki.source.docker "default" {
   forward_to = [loki.write.local.receiver]
 }
 
+// OPNsense (and other network gear) remote syslog -> Loki (send as RFC5424)
+loki.source.syslog "network" {
+  listener {
+    address                = "0.0.0.0:1514"
+    protocol               = "udp"
+    labels                 = { job = "opnsense", source = "syslog" }
+    use_incoming_timestamp = true
+  }
+  listener {
+    address                = "0.0.0.0:1514"
+    protocol               = "tcp"
+    labels                 = { job = "opnsense", source = "syslog" }
+    use_incoming_timestamp = true
+  }
+  forward_to = [loki.write.local.receiver]
+}
+
 loki.write "local" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
