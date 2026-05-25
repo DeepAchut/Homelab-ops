@@ -1,0 +1,73 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: homelab-alerts
+    folder: Homelab
+    interval: 1m
+    rules:
+      # --- Log-based: K8s panic / fatal / CrashLoop across all namespaces (uses Loki) ---
+      - uid: k8s-error-log-spike
+        title: K8s panic/fatal/CrashLoop log spike
+        condition: C
+        for: 5m
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: loki
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              expr: 'sum(count_over_time({namespace=~".+"} |~ "(?i)(panic|fatal|crashloopbackoff|oomkilled)" [10m]))'
+              queryType: instant
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [5]
+              refId: C
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Cluster panic/fatal/CrashLoop log lines spiking (last 10m)'
+
+      # --- Metric-based: any node-exporter scrape target down (uses VictoriaMetrics) ---
+      - uid: scrape-target-down
+        title: Scrape target down
+        condition: C
+        for: 5m
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              expr: 'min by (host) (up{job=~"node-.*"})'
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+              refId: C
+        labels:
+          severity: critical
+        annotations:
+          summary: 'A node-exporter target is DOWN ({{ $labels.host }})'

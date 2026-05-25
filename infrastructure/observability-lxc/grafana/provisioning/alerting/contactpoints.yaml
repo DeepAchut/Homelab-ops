@@ -1,0 +1,15 @@
+apiVersion: 1
+
+# Gotify via its message API. Grafana's webhook body carries top-level `title` + `message`,
+# which Gotify reads directly. Token comes from $GF_ALERT_GOTIFY_TOKEN (set in CT405 .env),
+# so it never lands in the repo.
+contactPoints:
+  - orgId: 1
+    name: gotify
+    receivers:
+      - uid: gotify_webhook
+        type: webhook
+        settings:
+          url: https://notifications.dkghar.duckdns.org/message?token=$GF_ALERT_GOTIFY_TOKEN
+          httpMethod: POST
+        disableResolveMessage: false

@@ -37,3 +37,9 @@ scrape_configs:
     static_configs:
       - targets: ["192.168.4.12:9100"]
         labels: { host: "media-ai-ops-lxc" }
+
+  - job_name: node-opnsense
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["192.168.4.1:9100"]   # OPNsense os-node_exporter (Prometheus Exporter plugin)
+        labels: { host: "opnsense" }

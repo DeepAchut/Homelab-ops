@@ -17,6 +17,7 @@ services:
       - "--storageDataPath=/storage"
       - "--retentionPeriod=90d"
       - "--promscrape.config=/etc/vm/scrape.yaml"
+      - "--promscrape.configCheckInterval=30s"
       - "--httpListenAddr=0.0.0.0:8428"
     deploy:
       resources:
@@ -49,6 +50,7 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ALERT_GOTIFY_TOKEN=${GF_ALERT_GOTIFY_TOKEN:-}   # Gotify app token for the alert contact point (set in .env)
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

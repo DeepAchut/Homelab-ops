@@ -5,3 +5,6 @@ resources:
   - vmagent/rbac.yaml
   - vmagent/configmap.yaml
   - vmagent/deployment.yaml
+  - alloy-logs/rbac.yaml
+  - alloy-logs/configmap.yaml
+  - alloy-logs/deployment.yaml
