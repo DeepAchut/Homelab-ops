@@ -3,6 +3,8 @@
 # Logs    : Loki (+ Grafana Alloy shipper, added alongside)
 # Viz     : Grafana (datasources auto-provisioned)
 # Deploy  : clone this repo in CT405, `cp .env.example .env` (set Grafana pw), `docker compose up -d`.
+name: observability   # pin project name so named volumes stay stable regardless of run dir
+
 services:
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.143.0
