@@ -1,0 +1,80 @@
+{
+  "title": "OPNsense Network",
+  "uid": "opnsense-network",
+  "tags": ["opnsense", "network"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "WAN (igb1) throughput",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "rate(net_bytes_recv{interface=\"igb1\"}[5m]) * 8", "legendFormat": "Download" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "rate(net_bytes_sent{interface=\"igb1\"}[5m]) * 8", "legendFormat": "Upload" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "LAN (bridge0) throughput",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "rate(net_bytes_recv{interface=\"bridge0\"}[5m]) * 8", "legendFormat": "Download" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "rate(net_bytes_sent{interface=\"bridge0\"}[5m]) * 8", "legendFormat": "Upload" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "WAN total ↓ (since boot)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "net_bytes_recv{interface=\"igb1\"}" } ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "WAN total ↑ (since boot)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "net_bytes_sent{interface=\"igb1\"}" } ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "CPU busy %",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "100 - cpu_usage_idle{cpu=\"cpu-total\"}" } ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Memory used %",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "mem_used_percent" } ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Disk / used %",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" }, "expr": "disk_used_percent{path=\"/\"}" } ]
+    }
+  ]
+}
