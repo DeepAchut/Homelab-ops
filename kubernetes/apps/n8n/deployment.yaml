@@ -55,6 +55,17 @@ spec:
               value: "false"
             - name: N8N_REINSTALL_MISSING_PACKAGES
               value: "true"
+            # Kill Rudder telemetry + version check (was spamming axios ECONNREFUSED to 0.0.0.0:443)
+            - name: N8N_DIAGNOSTICS_ENABLED
+              value: "false"
+            - name: N8N_VERSION_NOTIFICATIONS_ENABLED
+              value: "false"
+            - name: EXTERNAL_FRONTEND_HOOKS_URLS
+              value: ""
+            - name: N8N_DIAGNOSTICS_CONFIG_FRONTEND
+              value: ""
+            - name: N8N_DIAGNOSTICS_CONFIG_BACKEND
+              value: ""
             # External Python runner wiring (matches old compose)
             - name: N8N_RUNNERS_ENABLED
               value: "true"

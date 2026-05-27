@@ -7,10 +7,14 @@ groups:
     interval: 1m
     rules:
       # --- Log-based: K8s panic / fatal / CrashLoop across all namespaces (uses Loki) ---
+      # noDataState=OK so a zero-match window doesn't fire (Grafana's default = Alerting).
+      # execErrState=OK so a Loki blip doesn't fire either; we only want REAL spikes.
       - uid: k8s-error-log-spike
         title: K8s panic/fatal/CrashLoop log spike
         condition: C
         for: 5m
+        noDataState: OK
+        execErrState: OK
         data:
           - refId: A
             relativeTimeRange:
@@ -40,10 +44,13 @@ groups:
           summary: 'Cluster panic/fatal/CrashLoop log lines spiking (last 10m)'
 
       # --- Metric-based: any node-exporter scrape target down (uses VictoriaMetrics) ---
+      # NoData here means VM itself is sick — DO fire that. ExecErr also fires.
       - uid: scrape-target-down
         title: Scrape target down
         condition: C
         for: 5m
+        noDataState: Alerting
+        execErrState: Alerting
         data:
           - refId: A
             relativeTimeRange:

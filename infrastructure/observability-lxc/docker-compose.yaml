@@ -53,6 +53,10 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_ALERT_GOTIFY_TOKEN=${GF_ALERT_GOTIFY_TOKEN:-}   # Gotify app token for the alert contact point (set in .env)
+      # Public URL so alert/notification links resolve to NPM, not localhost:3000
+      - GF_SERVER_DOMAIN=grafana.dkghar.duckdns.org
+      - GF_SERVER_ROOT_URL=https://grafana.dkghar.duckdns.org
+      - GF_SERVER_ENFORCE_DOMAIN=false   # NPM forwards Host; don't reject mismatches
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
