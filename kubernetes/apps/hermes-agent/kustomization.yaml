@@ -9,7 +9,7 @@ resources:
   - configmap-hermes.yaml
   - deployment.yaml
   - service.yaml
-  # secret.enc.yaml — committed encrypted; user decrypts + applies separately (or via Flux SOPS).
+  - secret.enc.yaml
 
 # Generate the skill ConfigMaps from the actual files on disk so SKILL.md and the
 # scripts are the source of truth (edit them, kubectl apply -k, rollout).
