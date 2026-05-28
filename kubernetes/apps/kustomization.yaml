@@ -8,3 +8,4 @@ resources:
   - mem0
   - open-webui
   - monitoring
+  - hermes-agent
