@@ -4,10 +4,11 @@ metadata:
   name: open-webui
   namespace: open-webui
 spec:
+  type: NodePort   # exposed on every node IP — NPM (on CT203) can reach this
   selector:
     app: open-webui
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 8080
-      name: http
-  type: ClusterIP
+      nodePort: 30880   # fixed so NPM mapping doesn't drift on reapply (valid range: 30000-32767)
