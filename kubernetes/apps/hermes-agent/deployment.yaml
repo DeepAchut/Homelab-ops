@@ -60,6 +60,11 @@ spec:
             - { name: seed-skill-scripts,  mountPath: /seed-skill-scripts }
 
       containers:
+        # ───────────────────────────────────────────────────────────────────
+        # Hermes Agent gateway — single container, OpenAI-compatible API
+        # exposed on :8642 for Open WebUI / other clients to connect to.
+        # No messaging-platform sidecars; Open WebUI is the user-facing front-end.
+        # ───────────────────────────────────────────────────────────────────
         - name: hermes
           image: nousresearch/hermes-agent:v2026.5.16
           imagePullPolicy: IfNotPresent
@@ -69,9 +74,16 @@ spec:
           ports:
             - { name: api,    containerPort: 8642, protocol: TCP }   # OpenAI-compat + health
           env:
-            # API_SERVER stays off until user wants to expose Hermes to other LAN clients.
-            # When enabling: set API_SERVER_KEY (8+ chars) in hermes-credentials Secret and
-            # set API_SERVER_ENABLED=true + API_SERVER_HOST=0.0.0.0 here.
+            # Put the venv first on PATH so `kubectl exec -- hermes ...` resolves without full path.
+            # The container's entrypoint also activates this venv for the main process, but `exec`
+            # sessions skip the entrypoint.
+            - { name: PATH, value: "/opt/hermes/.venv/bin:/opt/data/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" }
+
+            # Hermes OpenAI-compatible HTTP API server on :8642 — this is what Open WebUI talks to.
+            # Required: API_SERVER_KEY (8+ chars) since we bind 0.0.0.0 (so the K8s Service can reach it).
+            - { name: API_SERVER_ENABLED, value: "true" }
+            - { name: API_SERVER_HOST,    value: "0.0.0.0" }
+            - { name: API_SERVER_KEY,     valueFrom: { secretKeyRef: { name: hermes-credentials, key: API_SERVER_KEY, optional: false } } }
             # Credentials — sourced from the hermes-credentials Secret (SOPS-encrypted in repo)
             - { name: ANTHROPIC_API_KEY,    valueFrom: { secretKeyRef: { name: hermes-credentials, key: ANTHROPIC_API_KEY,    optional: true } } }
             - { name: GEMINI_API_KEY,       valueFrom: { secretKeyRef: { name: hermes-credentials, key: GEMINI_API_KEY,       optional: true } } }

@@ -3,8 +3,10 @@ kind: Deployment
 metadata:
   name: open-webui
   namespace: open-webui
+  labels:
+    app: open-webui
 spec:
-  replicas: 0
+  replicas: 1
   strategy:
     type: Recreate
   selector:
@@ -15,31 +17,60 @@ spec:
       labels:
         app: open-webui
     spec:
+      # Phase 22d migration — moved off rpi4 (tier=always-on) onto the new
+      # Evo-X2 K8s worker (tier=ai-worker, Phase 22b). Stale rpi4 PVC was wiped.
       nodeSelector:
-        kubernetes.io/hostname: ira-rpi4-talos-worker
+        tier: ai-worker
       containers:
         - name: open-webui
           image: ghcr.io/open-webui/open-webui:latest
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8080
-              name: http
+            - { containerPort: 8080, name: http }
           env:
+            # Backend 1: Ollama on the Evo-X2 HOST (Phase 22a) — chat with qwen3.6:35b-a3b directly
             - name: OLLAMA_BASE_URL
-              value: "http://192.168.4.110:11434"
+              value: "http://192.168.4.84:11434"
+            # Backend 2: Hermes Agent's OpenAI-compatible API on :8642 — agent capabilities
+            # (tools, skills, the system-administrator skill we built). Cluster DNS service.
+            - name: OPENAI_API_BASE_URL
+              value: "http://hermes-agent.hermes-agent.svc.cluster.local:8642/v1"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: open-webui-credentials
+                  key: OPENAI_API_KEY
+            # Session signing key (separate from the Hermes API key)
             - name: WEBUI_SECRET_KEY
-              value: "super-secret-key-change-me" # Should be in a secret
+              valueFrom:
+                secretKeyRef:
+                  name: open-webui-credentials
+                  key: WEBUI_SECRET_KEY
+            # Telemetry off
+            - name: ANONYMIZED_TELEMETRY
+              value: "false"
+            - name: DO_NOT_TRACK
+              value: "true"
+            - name: SCARF_NO_ANALYTICS
+              value: "true"
             - name: DATA_DIR
-              value: /app/backend/data
+              value: "/app/backend/data"
           volumeMounts:
-            - name: data
-              mountPath: /app/backend/data
+            - { name: data, mountPath: /app/backend/data }
           resources:
-            requests:
-              cpu: 200m
-              memory: 512Mi
-            limits:
-              cpu: 1000m
-              memory: 1Gi
+            # Open WebUI loads a bunch of stuff at startup (embedding models, etc.) — 1Gi was OOMKilled.
+            # 4Gi is the comfortable working set; lift the request floor to 1Gi so the scheduler reserves it.
+            requests: { cpu: 200m,  memory: 1Gi }
+            limits:   { cpu: 2000m, memory: 4Gi }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
       volumes:
         - name: data
           persistentVolumeClaim:

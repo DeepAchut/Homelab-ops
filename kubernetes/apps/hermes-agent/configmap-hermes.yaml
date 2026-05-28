@@ -41,16 +41,12 @@ data:
     # WhatsApp: scan QR via `kubectl exec -n hermes-agent -it deploy/hermes-agent -- hermes`
     # Once paired, the Baileys session blob persists in /opt/data — no re-pair on restart.
     # ───────────────────────────────────────────────────────────────────────────
-    # Platforms start DISABLED so the gateway boots cleanly without creds.
-    # Enable each one after providing its prerequisite:
-    #   - whatsapp: kubectl exec into pod, run `hermes whatsapp` to pair via QR
-    #   - homeassistant: set HASS_TOKEN in hermes-credentials Secret
-    # Then edit this configmap + `kubectl rollout restart deploy/hermes-agent`.
+    # Platforms — messaging gateways. ALL OFF.
+    # User interaction happens via Open WebUI (browser) → Hermes API on :8642.
+    # If you ever want a messaging gateway later, enable the right one + set its prereqs.
     platforms:
       cli:
         enabled: true
-      whatsapp:
-        enabled: false
       homeassistant:
         enabled: false
         extra:
