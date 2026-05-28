@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-config-seed
+  namespace: hermes-agent
+data:
+  # Seeded into /opt/data/config.yaml by the init container on first start ONLY.
+  # After that Hermes owns it (mid-session /model switches mutate this file).
+  # If you need to reset: kubectl exec -it deploy/hermes-agent -- rm /opt/data/config.yaml
+  # then rollout restart.
+  config.yaml: |
+    # ───────────────────────────────────────────────────────────────────────────
+    # Primary inference — local Ollama on Evo-X2 host (Phase 22a)
+    # ───────────────────────────────────────────────────────────────────────────
+    model:
+      default: qwen3.6:35b-a3b
+      provider: custom
+      base_url: http://192.168.4.84:11434/v1
+      context_length: 64000
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Fallback chain — only fires on errors from primary (429, 5xx, auth, timeout)
+    # Tried in order; one-shot per session. Manual override mid-session via /model.
+    # ───────────────────────────────────────────────────────────────────────────
+    fallback_providers:
+      - provider: gemini
+        model: gemini-2.5-flash
+      - provider: anthropic
+        model: claude-sonnet-4-6
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Auxiliary models — small models for vision / compression / web extract
+    # ───────────────────────────────────────────────────────────────────────────
+    auxiliary:
+      compression:
+        provider: gemini
+        model: gemini-2.5-flash
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Messaging platforms (gateways Hermes listens on)
+    # WhatsApp: scan QR via `kubectl exec -n hermes-agent -it deploy/hermes-agent -- hermes`
+    # Once paired, the Baileys session blob persists in /opt/data — no re-pair on restart.
+    # ───────────────────────────────────────────────────────────────────────────
+    # Platforms start DISABLED so the gateway boots cleanly without creds.
+    # Enable each one after providing its prerequisite:
+    #   - whatsapp: kubectl exec into pod, run `hermes whatsapp` to pair via QR
+    #   - homeassistant: set HASS_TOKEN in hermes-credentials Secret
+    # Then edit this configmap + `kubectl rollout restart deploy/hermes-agent`.
+    platforms:
+      cli:
+        enabled: true
+      whatsapp:
+        enabled: false
+      homeassistant:
+        enabled: false
+        extra:
+          cooldown_seconds: 30
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Skills — auto-load from /opt/data/skills/. system-administrator skill is
+    # seeded by the init container; HF community skills are tapped on demand.
+    # ───────────────────────────────────────────────────────────────────────────
+    skills:
+      autoload: true
+      huggingface_tap:
+        enabled: false   # opt-in later, after vetting; not blanket-enable today

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hermes-data
+  namespace: hermes-agent
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      # Holds: config.yaml, sessions/, skills/, memories/, whatsapp session blob,
+      # auto-generated skills Hermes writes itself. 10 GB is generous for now.
+      storage: 10Gi

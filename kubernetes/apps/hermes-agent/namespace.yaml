@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hermes-agent
+  labels:
+    # Hermes Agent image runs as root + needs unrestricted shell access for its
+    # subagent terminals. Baseline (not restricted) so we don't fight the container.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hermes-agent
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - pvc.yaml
+  - configmap-hermes.yaml
+  - deployment.yaml
+  - service.yaml
+  # secret.enc.yaml — committed encrypted; user decrypts + applies separately (or via Flux SOPS).
+
+# Generate the skill ConfigMaps from the actual files on disk so SKILL.md and the
+# scripts are the source of truth (edit them, kubectl apply -k, rollout).
+configMapGenerator:
+  - name: hermes-skill-system-administrator
+    files:
+      - SKILL.md=skills/system-administrator/SKILL.md
+  - name: hermes-skill-system-administrator-scripts
+    files:
+      - skills/system-administrator/scripts/k8s_status.py
+      - skills/system-administrator/scripts/service_health.py
+      - skills/system-administrator/scripts/vm_query.py
+      - skills/system-administrator/scripts/loki_query.py
+      - skills/system-administrator/scripts/proxmox_status.py
+
+# Don't add a hash suffix — keeps the name stable for the Deployment to reference.
+# Trade-off: rollout doesn't auto-trigger on skill edits; we annotate the Deployment instead.
+generatorOptions:
+  disableNameSuffixHash: true

@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes-agent
+  namespace: hermes-agent
+  labels:
+    app: hermes-agent
+spec:
+  # Persistent process (WhatsApp websocket, memory store, skill runtime) — DO NOT scale beyond 1.
+  # PVC is RWO; second replica would block-mount-fail anyway.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: hermes-agent }
+  template:
+    metadata:
+      labels: { app: hermes-agent }
+    spec:
+      serviceAccountName: hermes-agent
+      # Pin to the new Evo-X2 worker. Existing rpi4 apps stay put (none match this label).
+      nodeSelector:
+        tier: ai-worker
+
+      initContainers:
+        # Seed /opt/data on first run + sync the system-administrator skill each rollout.
+        # Idempotent: doesn't overwrite config.yaml after Hermes has touched it.
+        - name: seed
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              echo "→ seeding /opt/data"
+              mkdir -p /opt/data/skills/system-administrator/scripts
+              mkdir -p /opt/data/skills/system-administrator/references
+
+              # Config: always overwrite so GitOps edits propagate on rollout.
+              # Trade-off: Hermes' own runtime mutations (/model switches) are lost on rollout.
+              # If you want to preserve runtime state, edit this configmap + apply (it'll re-seed
+              # the new values), or accept manual edits to /opt/data/config.yaml inside the pod.
+              cp /seed-config/config.yaml /opt/data/config.yaml
+              echo "  config.yaml synced"
+
+              # Skill: always sync (so manifest changes propagate on rollout)
+              cp /seed-skill/SKILL.md /opt/data/skills/system-administrator/SKILL.md
+              for s in /seed-skill-scripts/*.py; do
+                cp "$s" /opt/data/skills/system-administrator/scripts/
+              done
+              chmod +x /opt/data/skills/system-administrator/scripts/*.py
+              echo "  system-administrator skill synced"
+
+              # Permissions: Hermes runs as root inside the container; PVC owned by root is fine
+              ls -la /opt/data
+          volumeMounts:
+            - { name: data,                mountPath: /opt/data }
+            - { name: seed-config,         mountPath: /seed-config }
+            - { name: seed-skill,          mountPath: /seed-skill }
+            - { name: seed-skill-scripts,  mountPath: /seed-skill-scripts }
+
+      containers:
+        - name: hermes
+          image: nousresearch/hermes-agent:v2026.5.16
+          imagePullPolicy: IfNotPresent
+          # `gateway run` = headless server mode (no TTY needed). Default entrypoint
+          # is the interactive CLI which exits on `fd=0 is not a terminal`.
+          args: ["gateway", "run"]
+          ports:
+            - { name: api,    containerPort: 8642, protocol: TCP }   # OpenAI-compat + health
+          env:
+            # API_SERVER stays off until user wants to expose Hermes to other LAN clients.
+            # When enabling: set API_SERVER_KEY (8+ chars) in hermes-credentials Secret and
+            # set API_SERVER_ENABLED=true + API_SERVER_HOST=0.0.0.0 here.
+            # Credentials — sourced from the hermes-credentials Secret (SOPS-encrypted in repo)
+            - { name: ANTHROPIC_API_KEY,    valueFrom: { secretKeyRef: { name: hermes-credentials, key: ANTHROPIC_API_KEY,    optional: true } } }
+            - { name: GEMINI_API_KEY,       valueFrom: { secretKeyRef: { name: hermes-credentials, key: GEMINI_API_KEY,       optional: true } } }
+            - { name: HASS_TOKEN,           valueFrom: { secretKeyRef: { name: hermes-credentials, key: HASS_TOKEN,           optional: true } } }
+            - { name: HASS_URL,             value: "http://192.168.4.13:8123" }
+            - { name: PROXMOX_TOKEN_ID,     valueFrom: { secretKeyRef: { name: hermes-credentials, key: PROXMOX_TOKEN_ID,     optional: true } } }
+            - { name: PROXMOX_TOKEN_VALUE,  valueFrom: { secretKeyRef: { name: hermes-credentials, key: PROXMOX_TOKEN_VALUE,  optional: true } } }
+            - { name: PBS_TOKEN_ID,         valueFrom: { secretKeyRef: { name: hermes-credentials, key: PBS_TOKEN_ID,         optional: true } } }
+            - { name: PBS_TOKEN_VALUE,      valueFrom: { secretKeyRef: { name: hermes-credentials, key: PBS_TOKEN_VALUE,      optional: true } } }
+            # Hermes expects its data root at /opt/data per the official image
+            - { name: HERMES_HOME,          value: "/opt/data" }
+          volumeMounts:
+            - { name: data, mountPath: /opt/data }
+          resources:
+            requests: { cpu: "200m",  memory: "1Gi"  }
+            limits:   { cpu: "2000m", memory: "4Gi"  }
+          # Exec probes (not HTTP) — the gateway only opens :8642 when API_SERVER_ENABLED=true,
+          # which we leave off until the user provides API_SERVER_KEY. Process check is
+          # enough: if the gateway python process is gone, the container is sick.
+          # When you enable API_SERVER, swap these for httpGet /health.
+          readinessProbe:
+            exec: { command: ["pgrep", "-f", "hermes gateway run"] }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            exec: { command: ["pgrep", "-f", "hermes gateway run"] }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+
+      # Stay alive on quiet evenings — WhatsApp session needs persistence
+      terminationGracePeriodSeconds: 30
+
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: hermes-data }
+        - name: seed-config
+          configMap: { name: hermes-config-seed }
+        - name: seed-skill
+          configMap: { name: hermes-skill-system-administrator }
+        - name: seed-skill-scripts
+          configMap: { name: hermes-skill-system-administrator-scripts, defaultMode: 0755 }
