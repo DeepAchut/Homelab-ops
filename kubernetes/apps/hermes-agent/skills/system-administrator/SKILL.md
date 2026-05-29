@@ -100,6 +100,7 @@ Do **not** trigger this skill for: pure conversation, code help unrelated to the
 - **Grafana**: `https://grafana.dkghar.duckdns.org` (via NPM) or `http://192.168.4.66:3000` direct. Dashboards: Node Exporter Full, Logs/App, OPNsense Network. Alerting → Gotify via webhook.
 - **Gotify**: `https://notifications.dkghar.duckdns.org/message?token=$TOKEN` — push notifications target for all alerts.
 - **PBS**: `https://192.168.4.27:8007` (cert fingerprint scrubbed from public repo). Datastores: `backup-26tb`, `external-hdds`, `evox2-image`. n8n-driven scheduled backups (DAS Mon/Tue/Thu/Fri at 2 AM).
+- **Beszel** (at-a-glance health, parallel to the VM/Loki stack): server at `http://beszel.beszel.svc.cluster.local:8090` in-cluster, or `http://<any-node>:30090` via NodePort (e.g. `192.168.4.71:30090`). beszel-agent runs as a DaemonSet on every node. Use `beszel_query.py` to query it (PocketBase API; auth via `BESZEL_USER`/`BESZEL_PASSWORD`). Best for: "is anything alerting right now", "give me a one-line health for every host", "what's using CPU on container X".
 
 ### Notable n8n workflows
 
@@ -191,6 +192,23 @@ Use these from your tool calls. All are pure-stdlib Python (no extra installs), 
 - **`vm_query.py`** — execute a PromQL/MetricsQL query against VictoriaMetrics, return formatted result.
 - **`loki_query.py`** — execute a LogQL query against Loki, return the matching lines (last N).
 - **`proxmox_status.py`** — query Proxmox VE API (read-only via `PROXMOX_TOKEN_*` env vars) for node/VM/LXC status on Peladn or Evo-X2.
+- **`beszel_query.py`** — query the Beszel server's PocketBase API (`BESZEL_URL/USER/PASSWORD` env vars). Subcommands: `systems` (registered hosts + current health), `alerts` (active triggers), `stats <host> --minutes N` (recent CPU/mem/disk/net for a host), `containers <host>` (latest container snapshot — Docker AND K8s containers per host). Use this instead of `vm_query.py` when the user asks "what's Beszel showing" or wants the at-a-glance health view; use `vm_query.py` for deep PromQL queries against VictoriaMetrics.
+- **`grafana_query.py`** — query Grafana's HTTP API (read-only via `GRAFANA_TOKEN`). Subcommands: `health`, `dashboards [search]` (list/search), `alerts [--firing]` (currently active alert instances from the Grafana alertmanager), `alert-rules` (provisioned rules), `datasources`, `folders`, `annotations [--hours N]` (recent alert history/annotations). Use this when the user asks "what alerts are firing in Grafana" or "what dashboards do I have"; for raw metrics/logs go directly via `vm_query.py` / `loki_query.py`.
+
+### Choosing the right metrics/logs tool
+
+Three overlapping sources — pick by intent:
+
+| User intent | Tool | Why |
+|---|---|---|
+| "what alerts are firing right now" | `grafana_query.py alerts --firing` | Grafana's unified alerting view (the same one in the UI) |
+| "show me a PromQL/MetricsQL query" | `vm_query.py '<expr>'` | Direct VictoriaMetrics — Grafana queries this too |
+| "tail logs from pod X" / LogQL | `loki_query.py '{...}'` | Direct Loki — Grafana queries this too |
+| "what hosts is Beszel monitoring" / quick health snapshot | `beszel_query.py systems` | Beszel's at-a-glance per-host view |
+| "containers using lots of CPU on host Y" | `beszel_query.py containers <host>` | Beszel collects per-container stats agent-side |
+| "what dashboards exist for OPNsense" | `grafana_query.py dashboards opnsense` | Grafana's dashboard catalog |
+
+Default to PromQL/LogQL via the direct tools — they're faster and give you the raw data. Reach for `grafana_query.py` when the user references Grafana itself (alerts, dashboards) or when the answer is "which view in Grafana would show this". Reach for `beszel_query.py` for at-a-glance health and container-level stats Beszel collects that VictoriaMetrics doesn't have.
 
 Run a script:
 ```

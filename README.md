@@ -9,21 +9,29 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 ## Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Tier 1 — Always-On (24/7)                                      │
-│  Peladn 8845HS · 32 GB · AMD 780M                               │
-│  ├── Talos K8s Control Plane VM                                 │
-│  ├── home-ops-lxc  · HA · NPM · Vaultwarden · ESPHome           │
-│  └── media-ai-ops-lxc · Nextcloud · Immich · Ollama (ROCm)      │
-│                                                                 │
-│  RPi4 · 4 GB · ARM64                                            │
-│  └── Talos K8s Worker · mem0 · n8n · miniflux · beszel          │
-├─────────────────────────────────────────────────────────────────┤
-│  Tier 2 — On-Demand WOL                                         │
-│  Intel NUC  · Talos K8s Worker · general burst                  │
-│  Dell R610  · Talos K8s Worker · heavy compute                  │
-│  i9-14900K  · RTX 5070 · Talos Worker + Ollama CUDA             │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Tier 1 — Always-On (24/7)                                              │
+│                                                                         │
+│  Peladn  · Ryzen 7 8845HS · 32 GB · Radeon 780M iGPU                    │
+│  ├── Talos K8s Control Plane VM (ira-peladn-talos-cp)                   │
+│  ├── home-ops-lxc      · HA · NPM · Vaultwarden · ESPHome               │
+│  └── media-ai-ops-lxc  · Nextcloud · Immich · Ollama (ROCm, qwen3:4b)   │
+│                                                                         │
+│  Evo-X2  · Ryzen AI Max+ 395 · 96 GB UMA · Radeon 8060S (gfx1151)       │
+│  ├── PBS-lxc (CT200)               · Proxmox Backup Server              │
+│  ├── observability-lxc (CT405)     · VictoriaMetrics · Loki · Grafana   │
+│  ├── ollama-host  ← runs on host   · qwen3.6:35b-a3b · 44 tok/s         │
+│  └── ira-evo-x2-talos-worker (VM)  · K8s worker (tier=ai-worker)        │
+│       └── Hermes Agent  · Open WebUI                                    │
+│                                                                         │
+│  RPi4  · 4 GB · ARM64                                                   │
+│  └── Talos K8s Worker · mem0 · n8n · miniflux · beszel · nut            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Tier 2 — On-Demand WOL                                                 │
+│  Intel NUC  · Talos K8s Worker · general burst                          │
+│  Dell R610  · Talos K8s Worker · heavy compute                          │
+│  i9-14900K  · RTX 5070 · Talos Worker + Ollama CUDA                     │
+└─────────────────────────────────────────────────────────────────────────┘
                   │ GitOps (Flux CD)
           ┌───────┴────────────────┐
           │  OPNsense (perimeter)  │
@@ -39,14 +47,18 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 | Layer | Technology | Notes |
 | ----- | ---------- | ----- |
 | OS | [Talos Linux](https://www.talos.dev/) | Immutable, API-driven K8s OS |
-| Orchestration | Kubernetes (K8s) | 5-node mixed-arch cluster |
-| GitOps | [Flux CD v2](https://fluxcd.io/) | Push-based, native SOPS support |
+| Orchestration | Kubernetes (K8s) | Mixed-arch cluster: 1 CP (Peladn) + 2 always-on workers (rpi4 ARM, Evo-X2 amd64) + WOL bursts |
+| GitOps | [Flux CD v2](https://fluxcd.io/) | Push-based, native SOPS decryption at apply time |
 | Secrets | [SOPS](https://github.com/getsops/sops) + Age | Encrypted secrets safe to commit |
-| Hypervisor | [Proxmox VE](https://www.proxmox.com/) | LXC containers + VMs |
-| Backup | Proxmox Backup Server (PBS) | 3-2-1, GFS retention, verify jobs |
-| Networking | OPNsense | Perimeter firewall, DNS, DHCP, VPN |
-| AI Memory | [mem0](https://github.com/mem0ai/mem0) | Self-hosted, Ollama + Qdrant + Postgres |
-| Observability | Grafana + Loki + VictoriaMetrics | Phase 19 — in progress |
+| Hypervisor | [Proxmox VE 9.x](https://www.proxmox.com/) | LXC containers + VMs across Peladn + Evo-X2 |
+| Backup | Proxmox Backup Server (PBS) on Evo-X2 | 26 TB Seagate external datastore, n8n-driven vzdump |
+| Networking | OPNsense | Perimeter firewall, DNS, DHCP, NPM proxy frontends |
+| Local LLM | [Ollama](https://ollama.com/) on Evo-X2 host (ROCm/gfx1151) | qwen3.6:35b-a3b @ ~44 tok/s on iGPU UMA |
+| AI Agent | [Hermes Agent](https://hermes-agent.nousresearch.com/) | K8s pod, OpenAI-compat API, system-administrator skill |
+| AI Memory | [mem0](https://github.com/mem0ai/mem0) | Self-hosted, Peladn Ollama + Qdrant + Postgres |
+| Chat UI | [Open WebUI](https://github.com/open-webui/open-webui) | Browser front-end → both Ollama and Hermes models |
+| Observability | Grafana + Loki + VictoriaMetrics + Alloy + Beszel | CT405 LXC on Evo-X2; 90d metrics / 30d logs retention |
+| Notifications | Gotify | Grafana alerts + n8n workflows push here |
 
 ---
 
@@ -55,37 +67,45 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 ```text
 Homelab-ops/
 ├── kubernetes/
-│   ├── apps/                    # All K8s application manifests (Kustomize)
-│   │   ├── beszel/              # System metrics dashboard
-│   │   ├── mem0/                # AI memory layer (Postgres + Qdrant + server)
-│   │   ├── miniflux/            # RSS feed reader
-│   │   ├── n8n/                 # Workflow automation
-│   │   ├── nut/                 # UPS monitoring
-│   │   └── open-webui/          # LLM chat interface (scaled to 0, moving to i9)
-│   └── clusters/
-│       └── homelab/             # Flux CD cluster bootstrap + sync config
+│   ├── apps/                     # All K8s application manifests (Kustomize)
+│   │   ├── beszel/               # At-a-glance host + container metrics
+│   │   ├── hermes-agent/         # ⚕ Agent (skills + helper scripts + lab brain)
+│   │   ├── mem0/                 # AI memory layer (Postgres + Qdrant + server)
+│   │   ├── miniflux/             # RSS feed reader
+│   │   ├── monitoring/           # vmagent + alloy-logs (K8s metrics + pod logs)
+│   │   ├── n8n/                  # Workflow automation
+│   │   ├── nut/                  # UPS monitoring
+│   │   └── open-webui/           # Browser LLM chat — Ollama + Hermes backends
+│   ├── talos/                    # Talos worker machine configs (SOPS-encrypted)
+│   ├── talos-config/             # Plaintext talosconfig (for talosctl)
+│   └── clusters/homelab/         # Flux CD cluster bootstrap + sync config
 ├── infrastructure/
-│   ├── home-ops-lxc/            # Docker Compose for home-ops LXC
-│   └── media-ops-lxc/           # Docker Compose for media-ai LXC
+│   ├── home-ops-lxc/             # CT203 — HA, NPM, Vaultwarden, etc.
+│   ├── media-ops-lxc/            # CT202 — Nextcloud, Immich, Ollama (Peladn)
+│   ├── observability-lxc/        # CT405 — VM + Loki + Grafana + Alloy
+│   ├── ollama-host/              # Ollama systemd config (on Evo-X2 host)
+│   └── failover/                 # Peladn→Evo-X2 failover runbook + n8n workflows
 ├── docker/
-│   └── mem0-server/             # Custom mem0 FastAPI server image
-├── docs/                        # Solution guides and case studies
-├── ADR/                         # Architectural Decision Records
-└── cluster.env.example          # All environment-specific values documented
+│   └── mem0-server/              # Custom mem0 FastAPI server image
+├── docs/                         # Solution guides and case studies
+├── ADR/                          # Architectural Decision Records
+└── cluster.env.example           # All environment-specific values documented
 ```
 
 ---
 
 ## Services
 
-| Service | Namespace | Purpose | Docs |
-| ------- | --------- | ------- | ---- |
-| mem0 | `mem0` | Stateful AI memory layer — Postgres + Qdrant + REST API | [README](kubernetes/apps/mem0/README.md) |
-| n8n | `n8n` | Workflow automation, WOL triggers, AI pipelines | [README](kubernetes/apps/n8n/README.md) |
-| miniflux | `miniflux` | Lightweight RSS reader | [README](kubernetes/apps/miniflux/README.md) |
-| beszel | `beszel` | Host + container system metrics | [README](kubernetes/apps/beszel/README.md) |
-| nut | `nut` | UPS power monitoring | [README](kubernetes/apps/nut/README.md) |
-| open-webui | `open-webui` | LLM chat UI (paused — migrating to i9 LXC) | [README](kubernetes/apps/open-webui/README.md) |
+| Service | Namespace | Node tier | Purpose | Docs |
+| ------- | --------- | --------- | ------- | ---- |
+| **hermes-agent** | `hermes-agent` | `tier=ai-worker` (Evo-X2) | Multi-LLM agent (qwen3.6 local + Gemini/Anthropic fallback) with a custom `system-administrator` skill that knows the whole lab | [README](kubernetes/apps/hermes-agent/README.md) |
+| **open-webui** | `open-webui` | `tier=ai-worker` (Evo-X2) | Browser chat — connects to both Ollama (direct chat with qwen3.6) and Hermes (agent mode with tools) | [README](kubernetes/apps/open-webui/README.md) |
+| mem0 | `mem0` | rpi4 (hostname pinned) | Stateful AI memory layer — Postgres + Qdrant + REST API | [README](kubernetes/apps/mem0/README.md) |
+| n8n | `n8n` | `tier=always-on` (rpi4) | Workflow automation, WOL triggers, AI pipelines, Beszel→HA bridges | [README](kubernetes/apps/n8n/README.md) |
+| miniflux | `miniflux` | `tier=always-on` (rpi4) | Lightweight RSS reader | [README](kubernetes/apps/miniflux/README.md) |
+| beszel | `beszel` | `tier=always-on` (rpi4) + agents on every node | Host + container system metrics — parallel to VM/Loki, at-a-glance | [README](kubernetes/apps/beszel/README.md) |
+| nut | `nut` | rpi4 (hostname pinned) | UPS power monitoring | [README](kubernetes/apps/nut/README.md) |
+| monitoring | `monitoring` | rpi4 (hostname pinned) | `vmagent` (K8s metrics → VM) + `alloy-logs` (pod logs → Loki) | — |
 
 ---
 
@@ -109,9 +129,35 @@ sops --encrypt secret.yaml > secret.enc.yaml
 3. Encrypt any secrets: `sops --encrypt secret.yaml > secret.enc.yaml`
 4. Push — Flux reconciles within 1–10 minutes
 
+### Node-tier scheduling
+
+Apps are pinned to nodes via `nodeSelector` labels, not by hostname (where possible). The labels are stable contracts:
+
+| Label | Means | Currently on |
+|---|---|---|
+| `tier=always-on` | 24/7 low-power | RPi4 |
+| `tier=ai-worker` | GPU/agent workloads (Hermes, Open WebUI) | Evo-X2 K8s worker |
+| `tier=on-demand` | Burst (WOL on-demand) | NUC, R610, i9 |
+
+To migrate an app between tiers, edit one `nodeSelector` line in its deployment.yaml and push — Flux rolls it. Existing pods stay put until they restart.
+
 ### WOL (Wake-on-LAN) Automation
 
-Burst nodes (NUC, i9) are powered off when idle. n8n workflows trigger WOL via UpSnap when RPi4 RAM exceeds 75% or GPU workloads are requested. See [Phase 21 worker management plan](../Phase-21%20-%20worker-management-plan.md).
+Burst nodes (NUC, i9) are powered off when idle. n8n workflows trigger WOL via UpSnap when rpi4 RAM exceeds 75% or GPU workloads are requested.
+
+### Hermes Agent — the homelab brain
+
+The `system-administrator` skill in [`kubernetes/apps/hermes-agent/skills/`](kubernetes/apps/hermes-agent/skills/system-administrator/) embeds a complete topology map plus 6 read-only helper scripts:
+
+- `k8s_status.py` — pod state across the cluster (in-cluster ServiceAccount + RBAC)
+- `service_health.py` — HTTP health of 12 known services (Ollama, mem0, Grafana, …)
+- `vm_query.py` — PromQL/MetricsQL against VictoriaMetrics
+- `loki_query.py` — LogQL against Loki
+- `proxmox_status.py` — Proxmox VE read-only API (PVEAuditor token)
+- `beszel_query.py` — Beszel server API (PocketBase auth)
+- `grafana_query.py` — Grafana API (dashboards, alerts, annotations) via service-account token
+
+Open WebUI sits in front. Ask *"any K8s pods restarting in the last hour?"* or *"OPNsense WAN throughput last 30 min"* and Hermes routes to the right script.
 
 ---
 

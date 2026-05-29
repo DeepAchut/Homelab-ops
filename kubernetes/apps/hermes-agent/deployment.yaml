@@ -84,6 +84,22 @@ spec:
             - { name: API_SERVER_ENABLED, value: "true" }
             - { name: API_SERVER_HOST,    value: "0.0.0.0" }
             - { name: API_SERVER_KEY,     valueFrom: { secretKeyRef: { name: hermes-credentials, key: API_SERVER_KEY, optional: false } } }
+
+            # Beszel server — system-administrator skill's beszel_query.py uses these.
+            # In-cluster service DNS is the cleanest endpoint (no NodePort hop).
+            - name: BESZEL_URL
+              value: "http://beszel.beszel.svc.cluster.local:8090"
+            - name: BESZEL_USER
+              valueFrom: { secretKeyRef: { name: hermes-credentials, key: BESZEL_USER,     optional: true } }
+            - name: BESZEL_PASSWORD
+              valueFrom: { secretKeyRef: { name: hermes-credentials, key: BESZEL_PASSWORD, optional: true } }
+
+            # Grafana — system-administrator skill's grafana_query.py uses these.
+            # Grafana lives on CT405 (LXC, not in K8s) so we use the LAN IP.
+            - name: GRAFANA_URL
+              value: "http://192.168.4.66:3000"
+            - name: GRAFANA_TOKEN
+              valueFrom: { secretKeyRef: { name: hermes-credentials, key: GRAFANA_TOKEN, optional: true } }
             # Credentials — sourced from the hermes-credentials Secret (SOPS-encrypted in repo)
             - { name: ANTHROPIC_API_KEY,    valueFrom: { secretKeyRef: { name: hermes-credentials, key: ANTHROPIC_API_KEY,    optional: true } } }
             - { name: GEMINI_API_KEY,       valueFrom: { secretKeyRef: { name: hermes-credentials, key: GEMINI_API_KEY,       optional: true } } }
