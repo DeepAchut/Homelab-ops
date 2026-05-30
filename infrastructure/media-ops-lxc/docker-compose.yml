@@ -187,6 +187,7 @@ services:
       - MYSQL_PASSWORD=${NC_DB_PASSWORD}
       - REDIS_HOST=nextcloud-redis
       - REDIS_PORT=6379
+      - PHP_MEMORY_LIMIT=2G  # match main nextcloud service; default 512M OOMs on thumbnails
     depends_on:
       - nextcloud
       - mariadb
