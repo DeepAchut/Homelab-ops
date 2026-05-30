@@ -3,6 +3,23 @@ networks:
   nextcloud-net:
 
 services:
+  # Grafana Alloy — ships this LXC's Docker container logs to central Loki on CT405.
+  alloy:
+    image: grafana/alloy:v1.16.1
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/lib/alloy:/var/lib/alloy
+    ports:
+      - "12345:12345"  # Alloy UI (debug)
+
   node-exporter:
     image: prom/node-exporter:v1.11.1
     container_name: node-exporter
@@ -143,6 +160,37 @@ services:
   nextcloud-redis:
     image: redis:7-alpine
     container_name: nextcloud-redis
+    networks:
+      - nextcloud-net
+    restart: unless-stopped
+
+  nextcloud-cron:
+    image: nextcloud:stable
+    container_name: nextcloud-cron
+    entrypoint: /cron.sh
+    volumes:
+      - /var/www/nextcloud/:/var/www/html
+      - /var/www/nextcloud/custom_apps:/var/www/html/custom_apps
+      - /var/www/nextcloud/config:/var/www/html/config
+      - /mnt/das/nextcloud/data:/var/www/html/data
+      - /mnt/das/nextcloud/external_locaions/tmpfs:/tmpfs
+      - /mnt/das/nextcloud/external_locaions/Non-Raid-1:/var/SG_NonRaid
+      - /mnt/das/nextcloud/external_locaions/Non-Raid-2:/var/WD_NonRaid
+      - /mnt/das/nextcloud/external_locaions/Raid-Shared:/var/Raid
+      - /tmp:/tmp:exec
+      - /mnt/sg-ext-hdd:/var/sg-ext-hdd
+      - /mnt/wd-ext-hdd:/var/wd-ext-hdd
+    environment:
+      - MYSQL_HOST=mariadb
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${NC_DB_USER}
+      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+      - REDIS_HOST=nextcloud-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - nextcloud
+      - mariadb
+      - nextcloud-redis
     networks:
       - nextcloud-net
     restart: unless-stopped
