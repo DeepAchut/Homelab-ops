@@ -268,10 +268,18 @@ services:
       - CUSTOM_USER=${WEBTOP_USER}
       - PASSWORD=${WEBTOP_PASSWORD}
     volumes:
-      - /mnt/wd-ext-hdd/webtop/config:/config
+      # Config moved 2026-05-30 from /mnt/wd-ext-hdd/webtop/config (USB-3 HDD)
+      # to /var/lib/webtop/config (NVMe). USB-HDD random I/O on browser cache
+      # was causing stream stutter; NVMe eliminates it. Old USB dir kept as
+      # backup until verified working.
+      - /var/lib/webtop/config:/config
       - /mnt/wd-ext-hdd/webtop/downloads:/config/Downloads
     ports:
       - "3000:3000"
       - "3001:3001"
     shm_size: "1gb"
+    ulimits:
+      # No core dumps. Webtop crashes left 1.4 GB of stale core files in
+      # /config root (2026-05-30). Disable to keep config dir clean.
+      core: 0
     restart: unless-stopped
