@@ -164,37 +164,44 @@ services:
       - nextcloud-net
     restart: unless-stopped
 
-  nextcloud-cron:
-    image: nextcloud:stable
-    container_name: nextcloud-cron
-    entrypoint: /cron.sh
-    volumes:
-      - /var/www/nextcloud/:/var/www/html
-      - /var/www/nextcloud/custom_apps:/var/www/html/custom_apps
-      - /var/www/nextcloud/config:/var/www/html/config
-      - /mnt/das/nextcloud/data:/var/www/html/data
-      - /mnt/das/nextcloud/external_locaions/tmpfs:/tmpfs
-      - /mnt/das/nextcloud/external_locaions/Non-Raid-1:/var/SG_NonRaid
-      - /mnt/das/nextcloud/external_locaions/Non-Raid-2:/var/WD_NonRaid
-      - /mnt/das/nextcloud/external_locaions/Raid-Shared:/var/Raid
-      - /tmp:/tmp:exec
-      - /mnt/sg-ext-hdd:/var/sg-ext-hdd
-      - /mnt/wd-ext-hdd:/var/wd-ext-hdd
-    environment:
-      - MYSQL_HOST=mariadb
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=${NC_DB_USER}
-      - MYSQL_PASSWORD=${NC_DB_PASSWORD}
-      - REDIS_HOST=nextcloud-redis
-      - REDIS_PORT=6379
-      - PHP_MEMORY_LIMIT=2G  # match main nextcloud service; default 512M OOMs on thumbnails
-    depends_on:
-      - nextcloud
-      - mariadb
-      - nextcloud-redis
-    networks:
-      - nextcloud-net
-    restart: unless-stopped
+  # Disabled 2026-05-30: switched Nextcloud to AJAX cron mode (`php occ background:ajax`).
+  # User opens Nextcloud a few times a week — running cron every 5 min generated
+  # constant CPU/iowait/temp spikes on Peladn for no benefit. AJAX mode runs
+  # background jobs piggybacked on page loads, which matches the actual usage.
+  # Re-enable this block (and revert to `background:cron` via occ) if you ever
+  # add federated shares, calendar sharing, or other features that need
+  # background work to happen while no one is logged in.
+  # nextcloud-cron:
+  #   image: nextcloud:stable
+  #   container_name: nextcloud-cron
+  #   entrypoint: /cron.sh
+  #   volumes:
+  #     - /var/www/nextcloud/:/var/www/html
+  #     - /var/www/nextcloud/custom_apps:/var/www/html/custom_apps
+  #     - /var/www/nextcloud/config:/var/www/html/config
+  #     - /mnt/das/nextcloud/data:/var/www/html/data
+  #     - /mnt/das/nextcloud/external_locaions/tmpfs:/tmpfs
+  #     - /mnt/das/nextcloud/external_locaions/Non-Raid-1:/var/SG_NonRaid
+  #     - /mnt/das/nextcloud/external_locaions/Non-Raid-2:/var/WD_NonRaid
+  #     - /mnt/das/nextcloud/external_locaions/Raid-Shared:/var/Raid
+  #     - /tmp:/tmp:exec
+  #     - /mnt/sg-ext-hdd:/var/sg-ext-hdd
+  #     - /mnt/wd-ext-hdd:/var/wd-ext-hdd
+  #   environment:
+  #     - MYSQL_HOST=mariadb
+  #     - MYSQL_DATABASE=nextcloud
+  #     - MYSQL_USER=${NC_DB_USER}
+  #     - MYSQL_PASSWORD=${NC_DB_PASSWORD}
+  #     - REDIS_HOST=nextcloud-redis
+  #     - REDIS_PORT=6379
+  #     - PHP_MEMORY_LIMIT=2G  # match main nextcloud service; default 512M OOMs on thumbnails
+  #   depends_on:
+  #     - nextcloud
+  #     - mariadb
+  #     - nextcloud-redis
+  #   networks:
+  #     - nextcloud-net
+  #   restart: unless-stopped
 
   # ============================================================
   # MEDIA PLAYER (Jellyfin)
