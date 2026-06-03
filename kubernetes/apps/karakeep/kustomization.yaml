@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: karakeep
+resources:
+  - namespace.yaml
+  - secret.enc.yaml
+  - postgres-statefulset.yaml
+  - postgres-service.yaml
+  - meilisearch-pvc.yaml
+  - meilisearch-deployment.yaml
+  - meilisearch-service.yaml
+  - karakeep-assets-pv.yaml
+  - karakeep-assets-pvc.yaml
+  - karakeep-deployment.yaml
+  - karakeep-service.yaml

@@ -9,3 +9,4 @@ resources:
   - open-webui
   - monitoring
   - hermes-agent
+  - karakeep

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: karakeep-assets
+  namespace: karakeep
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-pvedas-karakeep
+  resources:
+    requests:
+      storage: 200Gi
+  volumeName: karakeep-assets

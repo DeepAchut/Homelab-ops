@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karakeep
+  namespace: karakeep
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: karakeep
+  template:
+    metadata:
+      labels:
+        app: karakeep
+    spec:
+      nodeSelector:
+        tier: ai-worker
+      containers:
+        - name: karakeep
+          image: ghcr.io/karakeep-app/karakeep:release
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            # === Core ===
+            - name: DATA_DIR
+              value: /data
+            - name: NEXTAUTH_URL
+              value: https://karakeep.dkghar.duckdns.org
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: karakeep-app-creds
+                  key: NEXTAUTH_SECRET
+            - name: PORT
+              value: "3000"
+
+            # === Database ===
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: karakeep-app-creds
+                  key: DATABASE_URL
+
+            # === Search ===
+            - name: MEILI_ADDR
+              value: http://meilisearch:7700
+            - name: MEILI_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: karakeep-meili-creds
+                  key: MEILI_MASTER_KEY
+
+            # === AI tagging via local Ollama on Peladn (always-on, qwen3:4b-instruct) ===
+            - name: OPENAI_BASE_URL
+              value: http://192.168.4.12:11434/v1
+            - name: OPENAI_API_KEY
+              value: ollama
+            - name: INFERENCE_TEXT_MODEL
+              value: qwen3:4b-instruct
+            - name: INFERENCE_CONTEXT_LENGTH
+              value: "8192"
+            - name: INFERENCE_LANG
+              value: english
+
+            # === Crawler — built-in headless Chromium for archival ===
+            - name: CRAWLER_FULL_PAGE_ARCHIVE
+              value: "true"
+            - name: CRAWLER_FULL_PAGE_SCREENSHOT
+              value: "true"
+            - name: CRAWLER_VIDEO_DOWNLOAD
+              value: "false"
+            - name: CRAWLER_DOWNLOAD_BANNER_IMAGE
+              value: "true"
+
+            # === Signup control (flip to true once you've created your user) ===
+            - name: DISABLE_SIGNUPS
+              value: "false"
+
+          volumeMounts:
+            - name: assets
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 2
+              memory: 3Gi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+      volumes:
+        - name: assets
+          persistentVolumeClaim:
+            claimName: karakeep-assets
