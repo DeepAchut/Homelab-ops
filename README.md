@@ -22,7 +22,7 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 │  ├── observability-lxc (CT405)     · VictoriaMetrics · Loki · Grafana   │
 │  ├── ollama-host  ← runs on host   · qwen3.6:35b-a3b · 44 tok/s         │
 │  └── ira-evo-x2-talos-worker (VM)  · K8s worker (tier=ai-worker)        │
-│       └── Hermes Agent  · Open WebUI                                    │
+│       └── Hermes Agent  · Open WebUI  · Karakeep (bookmarks + AI tag)   │
 │                                                                         │
 │  RPi4  · 4 GB · ARM64                                                   │
 │  └── Talos K8s Worker · mem0 · n8n · miniflux · beszel · nut            │
@@ -70,6 +70,7 @@ Homelab-ops/
 │   ├── apps/                     # All K8s application manifests (Kustomize)
 │   │   ├── beszel/               # At-a-glance host + container metrics
 │   │   ├── hermes-agent/         # ⚕ Agent (skills + helper scripts + lab brain)
+│   │   ├── karakeep/             # Bookmarks + AI auto-tag (assets on NFS DAS)
 │   │   ├── mem0/                 # AI memory layer (Postgres + Qdrant + server)
 │   │   ├── miniflux/             # RSS feed reader
 │   │   ├── monitoring/           # vmagent + alloy-logs (K8s metrics + pod logs)
@@ -100,6 +101,7 @@ Homelab-ops/
 | ------- | --------- | --------- | ------- | ---- |
 | **hermes-agent** | `hermes-agent` | `tier=ai-worker` (Evo-X2) | Multi-LLM agent (qwen3.6 local + Gemini/Anthropic fallback) with a custom `system-administrator` skill that knows the whole lab | [README](kubernetes/apps/hermes-agent/README.md) |
 | **open-webui** | `open-webui` | `tier=ai-worker` (Evo-X2) | Browser chat — connects to both Ollama (direct chat with qwen3.6) and Hermes (agent mode with tools) | [README](kubernetes/apps/open-webui/README.md) |
+| **karakeep** | `karakeep` | `tier=ai-worker` (Evo-X2) | Bookmark + read-later manager. Native iOS/Android/extensions. Auto-tags via Peladn Ollama. Assets on NFS DAS. Miniflux→Karakeep starred-entry sync runs every 15 min | [README](kubernetes/apps/karakeep/README.md) |
 | mem0 | `mem0` | rpi4 (hostname pinned) | Stateful AI memory layer — Postgres + Qdrant + REST API | [README](kubernetes/apps/mem0/README.md) |
 | n8n | `n8n` | `tier=always-on` (rpi4) | Workflow automation, WOL triggers, AI pipelines, Beszel→HA bridges | [README](kubernetes/apps/n8n/README.md) |
 | miniflux | `miniflux` | `tier=always-on` (rpi4) | Lightweight RSS reader | [README](kubernetes/apps/miniflux/README.md) |

@@ -4,6 +4,15 @@ Self-hosted bookmark + read-later manager with AI tagging. Native iOS + Android 
 
 Vendor: https://karakeep.app · GitHub: https://github.com/karakeep-app/karakeep
 
+## Status (2026-06-06)
+
+- ✅ Live and tagging bookmarks automatically via Peladn Ollama (`qwen3:4b-instruct`). Tag quality acceptable for daily use.
+- ✅ Miniflux → Karakeep sync CronJob running every 15 min.
+- ✅ VM 402 backup (Wed via DAS workflow) covers Postgres + Meilisearch on local-path.
+- ✅ DAS Friday backup covers NFS assets at `/mnt/pvedas/karakeep/assets`.
+- 🟡 Phase 2 TODOs at the bottom of this doc are **deferred** — current state covers daily use. Reopen if a specific need arises.
+- 🟡 Pull `qwen2.5:14b-instruct` on Evo-X2 for sharper tags — deferred (4B output is "good enough").
+
 ## What's in this folder
 
 | File | Purpose |
@@ -120,12 +129,13 @@ To change models without redeploy: edit `INFERENCE_TEXT_MODEL` in `karakeep-depl
 | Browse assets directly | SSH to Peladn → `ls -la /mnt/pvedas/karakeep/assets` |
 | Move assets PVC to a bigger size | Edit `karakeep-assets-pv.yaml` storage value + matching PVC, kubectl apply. Underlying NFS share can hold as much as DAS has free. |
 
-## TODO (Phase 2)
+## Phase 2 — resolved or deferred (2026-06-06)
 
-- **Postgres backup CronJob** — mirror the pattern from `apps/mem0/postgres/backup-cronjob.yaml`. Daily `pg_dump` to NFS at `/mnt/pvedas/karakeep-backups/postgres/`.
-- **Meilisearch backup** — easier: it's a derived index, can be re-built from Postgres + page re-crawl. Skip backup unless reindex cost becomes prohibitive.
-- **Wire to Miniflux** — when you star an entry in Miniflux, fire a webhook into Karakeep's `POST /api/v1/bookmarks` to auto-save. Closes the read-it-later loop.
-- **Add to digest workflow** — let the digest curator search Karakeep's tags ("show me Karakeep items tagged #aws from last week") as a source for the Tech section.
+- ✅ **Postgres backup** — covered by VM 402 backup (Wed 2 AM via DAS workflow). VM-level backup captures local-path Postgres data. No standalone CronJob needed.
+- ✅ **Meilisearch backup** — explicitly skipped. It's a derived index; rebuilds from Postgres + crawler re-fetch if ever lost.
+- ✅ **Wire to Miniflux** — done. `miniflux-sync-cronjob.yaml` polls starred Miniflux entries every 15 min and POSTs to `/api/v1/bookmarks`.
+- 🟡 **Add to digest workflow** — deferred. Current digest (v2.1) is satisfactory; revisit if Karakeep-tag search becomes a recurring need.
+- 🟡 **Pull `qwen2.5:14b-instruct` on Evo-X2 for sharper tags** — deferred. Current `qwen3:4b-instruct` output is acceptable.
 
 ## See also
 
