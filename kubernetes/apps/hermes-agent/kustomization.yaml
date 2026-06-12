@@ -26,6 +26,7 @@ configMapGenerator:
       - skills/system-administrator/scripts/proxmox_status.py
       - skills/system-administrator/scripts/beszel_query.py
       - skills/system-administrator/scripts/grafana_query.py
+      - skills/system-administrator/scripts/searxng_query.py
 
 # Don't add a hash suffix — keeps the name stable for the Deployment to reference.
 # Trade-off: rollout doesn't auto-trigger on skill edits; we annotate the Deployment instead.

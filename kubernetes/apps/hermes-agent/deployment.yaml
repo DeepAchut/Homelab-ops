@@ -100,6 +100,11 @@ spec:
               value: "http://192.168.4.66:3000"
             - name: GRAFANA_TOKEN
               valueFrom: { secretKeyRef: { name: hermes-credentials, key: GRAFANA_TOKEN, optional: true } }
+
+            # SearXNG — searxng_query.py uses this as the primary web-search backend.
+            # No token needed (internal-only metasearch).
+            - name: SEARXNG_URL
+              value: "http://searxng.searxng.svc.cluster.local:8080"
             # Credentials — sourced from the hermes-credentials Secret (SOPS-encrypted in repo)
             - { name: ANTHROPIC_API_KEY,    valueFrom: { secretKeyRef: { name: hermes-credentials, key: ANTHROPIC_API_KEY,    optional: true } } }
             - { name: GEMINI_API_KEY,       valueFrom: { secretKeyRef: { name: hermes-credentials, key: GEMINI_API_KEY,       optional: true } } }
