@@ -1,6 +1,16 @@
 # created: 2026-04-08T00:00:00-05:00
 # public key: age19gqzu544u299sfdfnsrxxgz6dw7vl7rk8p50mazkhvdwffwlf3msdr4q0t
+#
+# creation_rules are evaluated top-down — first match wins.
+# Keep more specific rules above the catch-all so intent is documented per app.
 creation_rules:
+  # Hermes Agent skill content — topology-leaking SKILL.md kept private.
+  # Files: apps/hermes-agent/skills/*/skill-content.enc.yaml
+  - path_regex: "apps/hermes-agent/skills/.*\\.enc\\.yaml$"
+    age: "age19gqzu544u299sfdfnsrxxgz6dw7vl7rk8p50mazkhvdwffwlf3msdr4q0t"
+    encrypted_regex: "^(data|stringData)$"
+
+  # Default — any other .enc.yaml in the kubernetes/ tree (app credentials, etc.)
   - path_regex: ".*\\.enc\\.yaml$"
     age: "age19gqzu544u299sfdfnsrxxgz6dw7vl7rk8p50mazkhvdwffwlf3msdr4q0t"
     encrypted_regex: "^(data|stringData)$"

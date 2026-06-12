@@ -145,6 +145,6 @@ spec:
         - name: seed-config
           configMap: { name: hermes-config-seed }
         - name: seed-skill
-          configMap: { name: hermes-skill-system-administrator }
+          secret: { secretName: hermes-skill-system-administrator }
         - name: seed-skill-scripts
           configMap: { name: hermes-skill-system-administrator-scripts, defaultMode: 0755 }

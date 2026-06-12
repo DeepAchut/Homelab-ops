@@ -10,13 +10,12 @@ resources:
   - deployment.yaml
   - service.yaml
   - secret.enc.yaml
+  # SKILL.md content is sensitive (lab topology) — encrypted Secret instead of plaintext ConfigMap.
+  - skills/system-administrator/skill-content.enc.yaml
 
-# Generate the skill ConfigMaps from the actual files on disk so SKILL.md and the
-# scripts are the source of truth (edit them, kubectl apply -k, rollout).
+# Scripts stay in a ConfigMap (generic code, no topology leaks beyond what's already in the
+# scripts' own hardcoded defaults — those will be sanitized in a follow-up).
 configMapGenerator:
-  - name: hermes-skill-system-administrator
-    files:
-      - SKILL.md=skills/system-administrator/SKILL.md
   - name: hermes-skill-system-administrator-scripts
     files:
       - skills/system-administrator/scripts/k8s_status.py
