@@ -105,6 +105,14 @@ spec:
             # No token needed (internal-only metasearch).
             - name: SEARXNG_URL
               value: "http://searxng.searxng.svc.cluster.local:8080"
+
+            # NAT64/dual-stack: Talos K8s networking resolves external IPv4 as
+            # 64:ff9b::/96-mapped IPv6, which Hermes's tools.url_safety flags as
+            # "private/internal" — false positive that blocks web_extract.
+            # Safe to disable here: single-user homelab, no IMDS exposure, and
+            # Hermes is already authorized to call internal services per SKILL.md.
+            - name: HERMES_ALLOW_PRIVATE_URLS
+              value: "true"
             # Credentials — sourced from the hermes-credentials Secret (SOPS-encrypted in repo)
             - { name: ANTHROPIC_API_KEY,    valueFrom: { secretKeyRef: { name: hermes-credentials, key: ANTHROPIC_API_KEY,    optional: true } } }
             - { name: GEMINI_API_KEY,       valueFrom: { secretKeyRef: { name: hermes-credentials, key: GEMINI_API_KEY,       optional: true } } }
