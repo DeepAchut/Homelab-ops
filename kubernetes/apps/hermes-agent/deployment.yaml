@@ -51,13 +51,33 @@ spec:
               chmod +x /opt/data/skills/system-administrator/scripts/*.py
               echo "  system-administrator skill synced"
 
-              # Permissions: Hermes runs as root inside the container; PVC owned by root is fine
+              # SSH key for admin v2 (ssh_run / ssh_exec):
+              # Hermes drops to UID 10000 at runtime, so the Secret-mounted
+              # key at /etc/hermes-ssh/id_ed25519 (root-owned 0400) is unreadable.
+              # Copy it to the PVC, chmod 0400, chown to the runtime UID.
+              if [ -f /etc/hermes-ssh/id_ed25519 ]; then
+                mkdir -p /opt/data/.ssh
+                cp /etc/hermes-ssh/id_ed25519 /opt/data/.ssh/id_ed25519
+                chmod 0700 /opt/data/.ssh
+                chmod 0400 /opt/data/.ssh/id_ed25519
+                chown -R 10000:10000 /opt/data/.ssh
+                touch /opt/data/.ssh/known_hosts
+                chown 10000:10000 /opt/data/.ssh/known_hosts
+                chmod 0600 /opt/data/.ssh/known_hosts
+                echo "  ssh key staged at /opt/data/.ssh/id_ed25519 (UID 10000)"
+              else
+                echo "  ssh key not present in Secret (admin v2 SSH tools will fail until SSH_PRIVATE_KEY is set)"
+              fi
+
+              # Permissions: Hermes runs as root initially, drops to UID 10000.
+              # PVC contents must be readable by 10000 — fsGroup or explicit chowns handle this.
               ls -la /opt/data
           volumeMounts:
             - { name: data,                mountPath: /opt/data }
             - { name: seed-config,         mountPath: /seed-config }
             - { name: seed-skill,          mountPath: /seed-skill }
             - { name: seed-skill-scripts,  mountPath: /seed-skill-scripts }
+            - { name: hermes-ssh,          mountPath: /etc/hermes-ssh, readOnly: true }
 
       containers:
         # ───────────────────────────────────────────────────────────────────
@@ -126,8 +146,9 @@ spec:
             - { name: HERMES_HOME,          value: "/opt/data" }
           volumeMounts:
             - { name: data, mountPath: /opt/data }
-            # SSH private key for admin v2 skills (read-only)
-            - { name: hermes-ssh, mountPath: /etc/hermes-ssh, readOnly: true }
+            # SSH key for admin v2 is staged by the init container at
+            # /opt/data/.ssh/id_ed25519 (UID 10000-owned, mode 0400). The
+            # main container reads from there, not directly from the Secret.
           resources:
             requests: { cpu: "200m",  memory: "1Gi"  }
             limits:   { cpu: "2000m", memory: "4Gi"  }

@@ -32,7 +32,7 @@ import argparse, json, os, subprocess, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-SSH_KEY = os.environ.get("HERMES_SSH_KEY", "/etc/hermes-ssh/id_ed25519")
+SSH_KEY = os.environ.get("HERMES_SSH_KEY", "/opt/data/.ssh/id_ed25519")
 AUDIT_LOG = Path("/opt/data/logs/ssh-exec-audit.log")
 
 HOSTS = {

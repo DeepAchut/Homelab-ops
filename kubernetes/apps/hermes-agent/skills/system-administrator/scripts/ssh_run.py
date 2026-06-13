@@ -8,11 +8,11 @@ For commands that mutate state (restart, kill, delete, mkfs), use ssh_exec.py
 which gates on user confirmation.
 
 Reads (from env):
-  HERMES_SSH_KEY  default: /etc/hermes-ssh/id_ed25519 (mounted from Secret)
+  HERMES_SSH_KEY  default: /opt/data/.ssh/id_ed25519 (copied + chowned by init container)
 
 Usage:
   ssh_run.py <host> "<command>"
-  ssh_run.py peladn "kubectl -n mem0 get pods"
+  ssh_run.py peladn "kubectl -n n8n get pods"
   ssh_run.py evox2  "systemctl status ollama"
   ssh_run.py peladn "pct exec 202 -- docker logs jellyfin --tail=20"
   ssh_run.py peladn "curl -s http://192.168.4.141:30800/health"
@@ -25,9 +25,9 @@ Hosts:
 
 Add --json for raw subprocess output as JSON.
 """
-import argparse, ipaddress, json, os, re, shlex, subprocess, sys, urllib.parse
+import argparse, ipaddress, json, os, shlex, subprocess, sys, urllib.parse
 
-SSH_KEY = os.environ.get("HERMES_SSH_KEY", "/etc/hermes-ssh/id_ed25519")
+SSH_KEY = os.environ.get("HERMES_SSH_KEY", "/opt/data/.ssh/id_ed25519")
 
 HOSTS = {
     "peladn": "192.168.4.150",
@@ -36,53 +36,60 @@ HOSTS = {
     "pbs":    "192.168.4.27",
 }
 
-# Command must START with one of these prefixes (matched against tokenized command).
-ALLOWED_PREFIXES = [
+# Allowed binaries → list of allowed verbs (the FIRST non-flag token after the binary).
+# Use ["*"] for binaries where any usage is read-only (ls, cat, df, etc.).
+ALLOWED = {
     # K8s read-only
-    ("kubectl", "get"), ("kubectl", "describe"), ("kubectl", "logs"),
-    ("kubectl", "explain"), ("kubectl", "top"), ("kubectl", "version"),
-    ("kubectl", "config"), ("kubectl", "api-resources"), ("kubectl", "cluster-info"),
+    "kubectl":  ["get", "describe", "logs", "explain", "top", "version",
+                 "config", "api-resources", "api-versions", "cluster-info", "auth", "diff"],
     # Docker read-only
-    ("docker", "ps"), ("docker", "logs"), ("docker", "inspect"),
-    ("docker", "version"), ("docker", "images"), ("docker", "stats"),
-    ("docker", "network"), ("docker", "volume"), ("docker", "info"),
-    # Filesystem read-only
-    ("ls",), ("cat",), ("head",), ("tail",), ("stat",), ("file",),
-    ("wc",), ("du",), ("df",), ("find",), ("tree",), ("readlink",),
-    # System info
-    ("ps",), ("top", "-b"), ("uptime",), ("free",), ("uname",),
-    ("id",), ("whoami",), ("date",), ("hostname",), ("printenv",), ("env",),
+    "docker":   ["ps", "logs", "inspect", "version", "images", "stats",
+                 "network", "volume", "info", "container", "system"],
+    # Filesystem (any usage is read-only)
+    "ls": ["*"], "cat": ["*"], "head": ["*"], "tail": ["*"], "stat": ["*"],
+    "file": ["*"], "wc": ["*"], "du": ["*"], "df": ["*"], "find": ["*"],
+    "tree": ["*"], "readlink": ["*"], "realpath": ["*"], "basename": ["*"],
+    "dirname": ["*"], "md5sum": ["*"], "sha256sum": ["*"],
+    # System / process info
+    "ps": ["*"], "top": ["*"], "uptime": ["*"], "free": ["*"], "uname": ["*"],
+    "id": ["*"], "whoami": ["*"], "date": ["*"], "hostname": ["*"],
+    "printenv": ["*"], "env": ["*"], "mount": ["*"], "lsmod": ["*"],
     # Logs
-    ("journalctl",), ("dmesg",), ("last",),
+    "journalctl": ["*"], "dmesg": ["*"], "last": ["*"],
     # Network read-only
-    ("ss",), ("netstat",), ("ip",), ("ping", "-c"), ("nslookup",), ("dig",),
-    ("showmount",),
+    "ss": ["*"], "netstat": ["*"], "ip": ["*"], "ping": ["*"],
+    "nslookup": ["*"], "dig": ["*"], "showmount": ["*"], "arp": ["*"],
+    "traceroute": ["*"],
     # systemd read-only
-    ("systemctl", "status"), ("systemctl", "is-active"),
-    ("systemctl", "is-enabled"), ("systemctl", "is-failed"),
-    ("systemctl", "list-units"), ("systemctl", "list-unit-files"),
-    ("systemctl", "show"), ("systemctl", "cat"),
+    "systemctl": ["status", "is-active", "is-enabled", "is-failed",
+                  "list-units", "list-unit-files", "list-jobs",
+                  "list-timers", "list-dependencies", "show", "cat"],
     # Proxmox read-only
-    ("pct", "config"), ("pct", "list"), ("pct", "status"),
-    ("qm", "config"), ("qm", "list"), ("qm", "status"),
-    ("pveversion",), ("pvesm", "status"), ("pvesm", "list"),
-    ("pvesh", "get"),
-    # pct exec — special-cased below (must match nested allowlist)
-    ("pct", "exec"),
-    # Hardware diagnostics
-    ("smartctl",), ("lsblk",), ("nvme",), ("sensors",),
-    ("lsusb",), ("lspci",), ("lscpu",), ("lsmem",),
-    ("hdparm",), ("rocm-smi",), ("nvidia-smi",), ("amd-smi",),
-    # HTTP GET to internal services — URL is RFC1918-checked below
-    ("curl",), ("wget",),
-]
+    "pct":      ["config", "list", "status", "exec"],
+    "qm":       ["config", "list", "status"],
+    "pveversion": ["*"],
+    "pvesm":    ["status", "list", "path"],
+    "pvesh":    ["get"],
+    "vzdump":   [],  # explicitly empty — vzdump is mutating
+    # Hardware / SMART / power
+    "smartctl": ["*"], "lsblk": ["*"], "nvme": ["*"], "sensors": ["*"],
+    "lsusb": ["*"], "lspci": ["*"], "lscpu": ["*"], "lsmem": ["*"],
+    "hdparm": ["*"], "rocm-smi": ["*"], "nvidia-smi": ["*"], "amd-smi": ["*"],
+    "fdisk": ["-l"],  # only -l (list)
+    # HTTP — URL is RFC1918-checked in validate()
+    "curl":     ["*"],
+    "wget":     ["*"],
+    # Misc
+    "echo":     ["*"], "true": ["*"], "false": ["*"], "which": ["*"],
+    "type": ["*"], "command": ["*"],
+}
 
 # Substrings that, if present anywhere in the command, hard-block.
 DENIED_SUBSTRINGS = [
     " rm ", " rmdir ", " mv ", " cp ", " chmod ", " chown ", " chgrp ",
     " kill ", " killall ", " pkill ",
     " mkfs", " dd if=", " dd of=", " tee ", " nft ", " iptables ",
-    " mount ", " umount ",
+    " umount ",
     " > /", " >> /", " 2> /", " 2>> /",
     "; sudo", "&& sudo", "| sudo",
     " su ", " su -",
@@ -91,21 +98,42 @@ DENIED_SUBSTRINGS = [
     " --force", " -rf ", " -fr ",
     " systemctl stop ", " systemctl restart ", " systemctl start ",
     " systemctl reload ", " systemctl disable ", " systemctl enable ",
-    " systemctl mask ", " systemctl unmask ",
+    " systemctl mask ", " systemctl unmask ", " systemctl reset-failed",
     " docker stop", " docker rm", " docker restart", " docker kill",
-    " docker run", " docker exec",
+    " docker run", " docker exec", " docker pull", " docker build",
     " kubectl delete", " kubectl create", " kubectl apply",
     " kubectl patch", " kubectl edit", " kubectl scale",
     " kubectl rollout", " kubectl replace", " kubectl annotate",
     " kubectl label", " kubectl cordon", " kubectl drain", " kubectl uncordon",
+    " kubectl taint", " kubectl run",
     " pct stop", " pct destroy", " pct create", " pct set",
     " pct start", " pct reboot", " pct shutdown",
     " qm stop", " qm destroy", " qm create", " qm set",
     " qm start", " qm reboot", " qm shutdown",
     " apt ", " apt-get ", " dpkg ", " pip install", " pip3 install",
     " curl -X POST", " curl -X PUT", " curl -X DELETE", " curl -X PATCH",
+    " curl --data", " curl -d ", " curl --upload-file",
     " wget --post-data", " wget -O ",
 ]
+
+# Flags that take a value (so we skip BOTH the flag AND the next token when
+# searching for the command verb).
+FLAG_TAKES_VALUE = {
+    "-n", "--namespace", "-c", "--container", "-o", "--output",
+    "-l", "--label-selector", "--context", "--cluster", "--user",
+    "-f", "--filename", "--field-selector", "-H", "--host",
+    "--since", "--tail", "--limit", "--server", "--token",
+    "--kubeconfig", "--request-timeout", "--all-namespaces=true",
+    "--all-namespaces=false", "--for", "--selector", "--node-name",
+    "--node",
+    "--unit", "-u",  # journalctl
+    "-N", "-A",  # ss -N takes value, but -A is boolean — risk of overconsuming; OK for our use
+    "--type", "--state",
+    "-d",  # smartctl -d sat
+    "--repeat-count",
+    "--api-token", "--api-key",
+    "--user-agent", "-A",
+}
 
 
 def is_private_url(url: str) -> bool:
@@ -121,7 +149,7 @@ def is_private_url(url: str) -> bool:
         return False
 
 
-def tokenize(cmd: str):
+def tokenize(cmd):
     try:
         return shlex.split(cmd)
     except ValueError as e:
@@ -129,16 +157,30 @@ def tokenize(cmd: str):
         sys.exit(2)
 
 
-def matches_prefix(tokens, prefix):
-    return len(tokens) >= len(prefix) and tuple(tokens[: len(prefix)]) == prefix
+def find_verb(tokens, start=1):
+    """Find the first non-flag token after `start`. Skip flags + their values."""
+    i = start
+    while i < len(tokens):
+        t = tokens[i]
+        if t.startswith("-"):
+            # Compound form --flag=value
+            if "=" in t:
+                i += 1
+                continue
+            if t in FLAG_TAKES_VALUE:
+                i += 2
+            else:
+                i += 1
+        else:
+            return t, i
+    return None, i
 
 
-def validate(cmd: str) -> tuple:
+def validate(cmd):
     """Return (allowed: bool, reason: str)."""
     if not cmd.strip():
         return False, "empty command"
 
-    # Hard-block dangerous substrings
     padded = " " + cmd + " "
     for substr in DENIED_SUBSTRINGS:
         if substr in padded:
@@ -148,39 +190,51 @@ def validate(cmd: str) -> tuple:
     if not tokens:
         return False, "empty after tokenize"
 
+    binary = tokens[0]
+
     # curl/wget special-case: enforce URL is private + only GET methods
-    if tokens[0] in ("curl", "wget"):
-        for tok in tokens:
-            if tok.startswith(("http://", "https://")):
-                if not is_private_url(tok):
-                    return False, f"URL {tok} is not RFC1918/loopback"
-        if tokens[0] == "curl" and any(t in ("-X", "--request") for t in tokens):
+    if binary in ("curl", "wget"):
+        for t in tokens:
+            if t.startswith(("http://", "https://")):
+                if not is_private_url(t):
+                    return False, f"URL {t} is not RFC1918/loopback"
+        if binary == "curl":
             for i, t in enumerate(tokens):
                 if t in ("-X", "--request") and i + 1 < len(tokens):
                     if tokens[i + 1].upper() not in ("GET", "HEAD"):
                         return False, "non-GET method for curl"
 
-    # pct exec NN -- <inner-cmd>: nested allowlist
-    if matches_prefix(tokens, ("pct", "exec")):
+    # pct exec NN -- <inner-cmd>: nested allowlist check
+    if binary == "pct" and len(tokens) >= 2 and tokens[1] == "exec":
         try:
             idx = tokens.index("--")
-            inner = " ".join(shlex.quote(t) for t in tokens[idx + 1 :])
+            inner = " ".join(shlex.quote(t) for t in tokens[idx + 1:])
             ok, reason = validate(inner)
             if not ok:
                 return False, f"pct exec inner cmd rejected: {reason}"
             return True, "ok"
         except ValueError:
-            # No '--' separator; just check first arg is read-only (default to allow)
-            pass
+            return False, "pct exec requires `--` separator and an inner command"
 
-    for prefix in ALLOWED_PREFIXES:
-        if matches_prefix(tokens, prefix):
-            return True, "ok"
+    # Lookup binary
+    if binary not in ALLOWED:
+        return False, f"binary {binary!r} not in allowlist"
 
-    return False, f"first token {tokens[0]!r} not in allowlist"
+    allowed_verbs = ALLOWED[binary]
+    if not allowed_verbs:
+        return False, f"binary {binary!r} explicitly disabled"
+    if "*" in allowed_verbs:
+        return True, "ok"
+
+    verb, _ = find_verb(tokens, 1)
+    if verb is None:
+        return False, f"{binary} requires a subcommand from {allowed_verbs}"
+    if verb in allowed_verbs:
+        return True, "ok"
+    return False, f"verb {verb!r} not allowed for {binary} (allowed: {allowed_verbs})"
 
 
-def run_ssh(host_alias: str, cmd: str, as_json: bool):
+def run_ssh(host_alias, cmd, as_json):
     if host_alias not in HOSTS:
         print(f"  unknown host {host_alias!r}. known: {', '.join(HOSTS)}", file=sys.stderr)
         sys.exit(2)
@@ -188,7 +242,7 @@ def run_ssh(host_alias: str, cmd: str, as_json: bool):
     ssh_argv = [
         "ssh", "-i", SSH_KEY,
         "-o", "StrictHostKeyChecking=accept-new",
-        "-o", "UserKnownHostsFile=/tmp/hermes-known-hosts",
+        "-o", "UserKnownHostsFile=/opt/data/.ssh/known_hosts",
         "-o", "ConnectTimeout=10",
         "-o", "BatchMode=yes",
         f"root@{ip}", cmd,
@@ -196,7 +250,7 @@ def run_ssh(host_alias: str, cmd: str, as_json: bool):
     try:
         r = subprocess.run(ssh_argv, capture_output=True, text=True, timeout=60)
     except subprocess.TimeoutExpired:
-        print(f"  ssh timeout after 60s", file=sys.stderr)
+        print("  ssh timeout after 60s", file=sys.stderr)
         sys.exit(124)
     if as_json:
         print(json.dumps({"host": host_alias, "cmd": cmd, "exit": r.returncode,
