@@ -26,6 +26,10 @@ configMapGenerator:
       - skills/system-administrator/scripts/beszel_query.py
       - skills/system-administrator/scripts/grafana_query.py
       - skills/system-administrator/scripts/searxng_query.py
+      - skills/system-administrator/scripts/ssh_run.py
+      - skills/system-administrator/scripts/ssh_exec.py
+      - skills/system-administrator/scripts/repo_read.py
+      - skills/system-administrator/scripts/git_propose.py
 
 # Don't add a hash suffix — keeps the name stable for the Deployment to reference.
 # Trade-off: rollout doesn't auto-trigger on skill edits; we annotate the Deployment instead.
