@@ -28,12 +28,16 @@ Hosts:
 Every executed command is appended to /opt/data/logs/ssh-exec-audit.log with:
   timestamp, host, command, user-confirmation-quote, exit-code.
 """
-import argparse, json, os, subprocess, sys
+import argparse, json, os, subprocess, sys, urllib.parse, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 SSH_KEY = os.environ.get("HERMES_SSH_KEY", "/opt/data/.ssh/id_ed25519")
 AUDIT_LOG = Path("/opt/data/logs/ssh-exec-audit.log")
+
+# Gotify push notification on every actual execution (best-effort).
+GOTIFY_URL = os.environ.get("GOTIFY_URL", "").rstrip("/")
+GOTIFY_TOKEN = os.environ.get("GOTIFY_TOKEN", "").strip()
 
 HOSTS = {
     "peladn": "192.168.4.150",
@@ -42,24 +46,105 @@ HOSTS = {
     "pbs":    "192.168.4.27",
 }
 
-# Hard blocks: things we never run, even with confirmation.
+# Hard blocks: things we never run, even with confirmation. Extending
+# this list is cheap and one-way safe — only add patterns that have no
+# legitimate use case for an automated agent.
 NEVER_RUN = [
+    # destructive filesystem ops
     "rm -rf /",
+    "rm -rf /etc",
+    "rm -rf /var",
+    "rm -rf /opt",
+    "rm -rf /usr",
+    "rm -rf /home",
+    "rm -rf /mnt",
+    "rm -rf /root",
+    "find / -delete",
+    "find /etc -delete",
+    "shred",
+    # block-device destruction
     "mkfs",
-    "dd if=/dev/zero of=/dev/",
-    "dd if=/dev/random of=/dev/",
+    "wipefs",
+    "dd if=/dev/zero of=/dev/sd",
+    "dd if=/dev/zero of=/dev/nvme",
+    "dd if=/dev/zero of=/dev/vd",
+    "dd if=/dev/random of=/dev/sd",
+    "dd if=/dev/random of=/dev/nvme",
+    "dd if=/dev/urandom of=/dev/sd",
+    "dd if=/dev/urandom of=/dev/nvme",
+    # LVM / cryptsetup — destroys volumes
+    "lvremove",
+    "vgremove",
+    "pvremove",
+    "cryptsetup luksFormat",
+    "cryptsetup erase",
+    # swap
+    "mkswap",
+    "swapoff -a",
+    # immutability — could lock the user out
+    "chattr +i /etc",
+    "chattr +i /boot",
+    "chattr +i /root",
+    "chattr +a /etc",
+    # firewall reset (would lock out of the host)
+    "iptables -F",
+    "iptables -X",
+    "iptables --flush",
+    "ip6tables -F",
+    "ip6tables -X",
+    "nft flush ruleset",
+    "nft delete table",
+    "ufw reset",
+    "ufw disable",
+    "firewall-cmd --reload",
+    # cron destruction
+    "crontab -r",
+    "rm /etc/crontab",
+    "rm /var/spool/cron",
+    # loopback / mount destruction
+    "losetup -d /dev/loop",
+    "umount -l /",
+    "umount -l /opt",
+    "umount -l /mnt",
+    # power off / reboot
     ":(){:|:&};:",  # fork bomb
     "shutdown -h now",
+    "shutdown -P now",
+    "shutdown -r now",
     "poweroff",
     "halt",
+    "reboot",
     "init 0",
     "init 6",
+    "systemctl poweroff",
+    "systemctl reboot",
+    "systemctl halt",
+    "systemctl emergency",
+    "systemctl rescue",
+    # K8s mass destruction
     "kubectl delete namespace mem0",
     "kubectl delete namespace flux-system",
     "kubectl delete namespace kube-system",
     "kubectl delete namespace n8n",
+    "kubectl delete namespace miniflux",
+    "kubectl delete namespace hermes-agent",
+    "kubectl delete pvc",
+    "kubectl delete pv",
+    "kubectl delete --all",
+    # Proxmox destruction
     "pct destroy",
     "qm destroy",
+    # SSH key trust destruction
+    "rm ~/.ssh",
+    "rm -rf ~/.ssh",
+    "rm /root/.ssh",
+    "truncate -s 0 /etc",
+    "truncate -s 0 /root/.ssh",
+    # passwd / shadow tampering
+    "rm /etc/passwd",
+    "rm /etc/shadow",
+    "passwd -d root",
+    "userdel root",
 ]
 
 
@@ -84,6 +169,47 @@ def audit(host_alias: str, cmd: str, conf_quote: str, exit_code: int, dry: bool)
     }
     with AUDIT_LOG.open("a") as f:
         f.write(json.dumps(rec) + "\n")
+
+
+def gotify_notify(host_alias: str, cmd: str, conf_quote: str, exit_code: int):
+    """Push a notification to the user's Gotify instance. Best-effort —
+    a failure here NEVER blocks the actual SSH execution; we just log to
+    stderr so the user knows visibility was lost for this call."""
+    if not GOTIFY_URL or not GOTIFY_TOKEN:
+        # Not configured — silent. User can wire GOTIFY_URL/GOTIFY_TOKEN
+        # via the hermes-credentials Secret if they want real-time alerts.
+        return
+    status_word = "OK" if exit_code == 0 else f"FAIL exit={exit_code}"
+    title = f"Hermes ssh_exec on {host_alias} — {status_word}"
+    # Truncate long commands so the push body stays readable
+    short_cmd = cmd if len(cmd) <= 400 else cmd[:397] + "..."
+    short_quote = conf_quote if len(conf_quote) <= 200 else conf_quote[:197] + "..."
+    body = (
+        f"host: {host_alias}\n"
+        f"cmd:  {short_cmd}\n"
+        f"approval: {short_quote!r}\n"
+        f"exit: {exit_code}\n"
+        f"ts:   {datetime.now(timezone.utc).isoformat()}"
+    )
+    payload = urllib.parse.urlencode({
+        "title": title,
+        "message": body,
+        # priority 5 = default; 8+ would override DnD on the user's phone.
+        # Failed executions get bumped so the user notices.
+        "priority": "8" if exit_code != 0 else "5",
+    }).encode()
+    url = f"{GOTIFY_URL}/message?token={urllib.parse.quote(GOTIFY_TOKEN)}"
+    req = urllib.request.Request(
+        url, data=payload, method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            if r.status >= 400:
+                print(f"  warn: gotify returned HTTP {r.status}", file=sys.stderr)
+    except Exception as e:
+        # Never block on push failure; just surface it.
+        print(f"  warn: gotify notify failed (continuing): {e}", file=sys.stderr)
 
 
 def main():
@@ -135,9 +261,11 @@ def main():
     except subprocess.TimeoutExpired:
         print(f"  ssh timeout after 120s", file=sys.stderr)
         audit(a.host, a.command, a.confirmation_quote, 124, dry=False)
+        gotify_notify(a.host, a.command, a.confirmation_quote, 124)
         sys.exit(124)
 
     audit(a.host, a.command, a.confirmation_quote, r.returncode, dry=False)
+    gotify_notify(a.host, a.command, a.confirmation_quote, r.returncode)
 
     if a.json:
         print(json.dumps({"host": a.host, "cmd": a.command, "exit": r.returncode,

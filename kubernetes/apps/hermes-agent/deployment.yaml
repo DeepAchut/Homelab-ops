@@ -126,6 +126,16 @@ spec:
             - name: SEARXNG_URL
               value: "http://searxng.searxng.svc.cluster.local:8080"
 
+            # Gotify push notification target for ssh_exec.py audit (best-effort).
+            # If GOTIFY_TOKEN is not set, no notifications are sent (gracefully degrades).
+            # Create a dedicated Gotify app for Hermes (Apps → Create app → "Hermes ssh_exec")
+            # and put its token in the Secret. URL is the LAN address (no NPM SSL roundtrip
+            # to keep latency low and avoid cert-trust issues from inside the pod).
+            - name: GOTIFY_URL
+              value: "http://192.168.4.13:8800"
+            - name: GOTIFY_TOKEN
+              valueFrom: { secretKeyRef: { name: hermes-credentials, key: GOTIFY_TOKEN, optional: true } }
+
             # NAT64/dual-stack: Talos K8s networking resolves external IPv4 as
             # 64:ff9b::/96-mapped IPv6, which Hermes's tools.url_safety flags as
             # "private/internal" — false positive that blocks web_extract.
