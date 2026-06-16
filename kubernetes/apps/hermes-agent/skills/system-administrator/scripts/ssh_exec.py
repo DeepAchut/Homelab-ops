@@ -39,6 +39,13 @@ AUDIT_LOG = Path("/opt/data/logs/ssh-exec-audit.log")
 GOTIFY_URL = os.environ.get("GOTIFY_URL", "").rstrip("/")
 GOTIFY_TOKEN = os.environ.get("GOTIFY_TOKEN", "").strip()
 
+# Loki push for every audit entry (best-effort). Ships the same JSON we
+# write to the local audit file, but with proper stream labels for LogQL.
+# Bypasses the Alloy stdout pipeline so Hermes doesn't have to surface the
+# audit entry in the chat transcript.
+LOKI_URL = os.environ.get("LOKI_URL", "http://192.168.4.66:3100").rstrip("/")
+HOSTNAME = os.environ.get("HOSTNAME", "hermes-pod")
+
 HOSTS = {
     "peladn": "192.168.4.150",
     "evox2":  "192.168.4.84",
@@ -169,6 +176,43 @@ def audit(host_alias: str, cmd: str, conf_quote: str, exit_code: int, dry: bool)
     }
     with AUDIT_LOG.open("a") as f:
         f.write(json.dumps(rec) + "\n")
+    loki_push(rec)
+
+
+def loki_push(rec: dict):
+    """Push an audit record to Loki. Best-effort — never blocks the actual
+    SSH execution if Loki is down. The Alloy DaemonSet already ships our
+    container stdout; this pushes the file-based audit log separately with
+    structured labels so LogQL queries are clean."""
+    if not LOKI_URL:
+        return
+    # Loki wants nanosecond-precision Unix timestamps as strings.
+    ts_ns = str(int(datetime.now(timezone.utc).timestamp() * 1e9))
+    payload = {
+        "streams": [{
+            "stream": {
+                "job":         "hermes-ssh-exec",
+                "namespace":   "hermes-agent",
+                "pod":         HOSTNAME,
+                "host":        rec["host"],
+                "exit_status": "ok" if rec["exit_code"] == 0 else "fail",
+                "dry_run":     str(rec["dry_run"]).lower(),
+            },
+            "values": [[ts_ns, json.dumps(rec)]],
+        }]
+    }
+    req = urllib.request.Request(
+        f"{LOKI_URL}/loki/api/v1/push",
+        data=json.dumps(payload).encode(),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            if r.status >= 400:
+                print(f"  warn: loki push returned HTTP {r.status}", file=sys.stderr)
+    except Exception as e:
+        print(f"  warn: loki push failed (continuing): {e}", file=sys.stderr)
 
 
 def gotify_notify(host_alias: str, cmd: str, conf_quote: str, exit_code: int):

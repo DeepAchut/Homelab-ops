@@ -143,6 +143,12 @@ spec:
             # Hermes is already authorized to call internal services per SKILL.md.
             - name: HERMES_ALLOW_PRIVATE_URLS
               value: "true"
+
+            # Loki target for ssh_exec audit push (CT405). Container stdout is
+            # already shipped by the Alloy DaemonSet; this is for the file-based
+            # audit log specifically.
+            - name: LOKI_URL
+              value: "http://192.168.4.66:3100"
             # Credentials — sourced from the hermes-credentials Secret (SOPS-encrypted in repo)
             - { name: ANTHROPIC_API_KEY,    valueFrom: { secretKeyRef: { name: hermes-credentials, key: ANTHROPIC_API_KEY,    optional: true } } }
             - { name: GEMINI_API_KEY,       valueFrom: { secretKeyRef: { name: hermes-credentials, key: GEMINI_API_KEY,       optional: true } } }
