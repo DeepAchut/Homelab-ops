@@ -55,6 +55,29 @@ spec:
               value: "true"
             - name: DATA_DIR
               value: "/app/backend/data"
+
+            # ─── RAG / file-upload behavior ─────────────────────────────────
+            # Default: send the entire file to the LLM (no chunking). Better
+            # answers on CSVs / configs / small docs at the cost of slower TTFT
+            # and a hard ceiling at the model's context window (64K on our
+            # current model defaults — see Workspace → Models → Advanced).
+            # Toggle per-chat in the chat settings if you upload something
+            # huge that would exceed the context.
+            - { name: BYPASS_EMBEDDING_AND_RETRIEVAL, value: "true" }
+            # When the user manually disables bypass (RAG mode), pull this
+            # many chunks instead of the upstream default of 3.
+            - { name: RAG_TOP_K,                      value: "20" }
+            # Chunking parameters when RAG mode is active.
+            - { name: CHUNK_SIZE,                     value: "2000" }
+            - { name: CHUNK_OVERLAP,                  value: "200" }
+            # BM25 + vector hybrid search — significantly better recall on
+            # structured/tabular content when RAG is in use.
+            - { name: ENABLE_RAG_HYBRID_SEARCH,       value: "true" }
+            # Upload seat-belts — reject files that would obviously blow past
+            # the model context window. 50 MB ≈ 12M tokens worst-case; well
+            # past what any local model can handle in bypass mode.
+            - { name: RAG_FILE_MAX_SIZE,              value: "50" }
+            - { name: RAG_FILE_MAX_COUNT,             value: "10" }
           volumeMounts:
             - { name: data, mountPath: /app/backend/data }
           resources:
