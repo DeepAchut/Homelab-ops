@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-family-config-seed
+  namespace: hermes-family
+data:
+  # Seeded into /opt/data/config.yaml by the init container on first start ONLY.
+  # After that Hermes owns it (mid-session /model switches mutate this file).
+  config.yaml: |
+    # ───────────────────────────────────────────────────────────────────────────
+    # Primary inference — Gemma 4 e4b on Evo-X2 Ollama (multimodal, friendly)
+    # Smaller + faster than admin Hermes's qwen3.6:35b-a3b — appropriate for
+    # casual family use, leaves the heavy model free for admin work.
+    # ───────────────────────────────────────────────────────────────────────────
+    model:
+      default: gemma4:e4b
+      provider: custom
+      base_url: http://192.168.4.84:11434/v1
+      context_length: 64000
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Fallback chain — Gemini Flash (free tier) catches errors / outages.
+    # ───────────────────────────────────────────────────────────────────────────
+    fallback_providers:
+      - provider: gemini
+        model: gemini-2.5-flash
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Auxiliary — small models for compression / vision sub-tasks.
+    # ───────────────────────────────────────────────────────────────────────────
+    auxiliary:
+      compression:
+        provider: gemini
+        model: gemini-2.5-flash
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Platforms — ALL OFF except CLI (Open WebUI is the family front-end).
+    # No WhatsApp/Telegram exposure for family Hermes.
+    # ───────────────────────────────────────────────────────────────────────────
+    platforms:
+      cli:
+        enabled: true
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # Skills — NO autoload. Family Hermes runs plain chat + web search +
+    # image generation. No system-administrator, no SSH, no admin v2 skills.
+    # ───────────────────────────────────────────────────────────────────────────
+    skills:
+      autoload: false
+      huggingface_tap:
+        enabled: false

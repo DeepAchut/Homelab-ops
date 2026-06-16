@@ -9,5 +9,6 @@ resources:
   - open-webui
   - monitoring
   - hermes-agent
+  - hermes-family
   - karakeep
   - searxng

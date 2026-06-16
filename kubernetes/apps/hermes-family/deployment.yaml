@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes-family
+  namespace: hermes-family
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hermes-family
+  template:
+    metadata:
+      labels:
+        app: hermes-family
+    spec:
+      serviceAccountName: hermes-family
+      automountServiceAccountToken: false
+      nodeSelector:
+        tier: ai-worker
+      terminationGracePeriodSeconds: 30
+
+      # ───────────────────────────────────────────────────────────────────────
+      # Init: seed /opt/data with config.yaml on first run only.
+      # No skill mounts, no SSH key staging — family Hermes is plain chat +
+      # web search + image gen. Drop privileges to UID 10000 like admin Hermes.
+      # ───────────────────────────────────────────────────────────────────────
+      initContainers:
+        - name: seed
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              echo "→ seeding /opt/data for hermes-family"
+              if [ ! -f /opt/data/config.yaml ]; then
+                cp /seed-config/config.yaml /opt/data/config.yaml
+                echo "  config.yaml seeded (first boot)"
+              else
+                # On every rollout, overwrite config.yaml so GitOps changes propagate.
+                cp /seed-config/config.yaml /opt/data/config.yaml
+                echo "  config.yaml refreshed"
+              fi
+              ls -la /opt/data
+          volumeMounts:
+            - { name: data,        mountPath: /opt/data }
+            - { name: seed-config, mountPath: /seed-config }
+
+      containers:
+        # ───────────────────────────────────────────────────────────────────
+        # Hermes Agent gateway for family use.
+        # - Default model: gemma4:e4b (multimodal, friendly)
+        # - mem0 user_id = "family" (memory isolated from admin Hermes user "deep")
+        # - No SSH key, no Gotify, no Proxmox/Grafana/Beszel/HA tokens
+        # - No system-administrator skill
+        # ───────────────────────────────────────────────────────────────────
+        - name: hermes
+          image: nousresearch/hermes-agent:v2026.6.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8642
+              name: api
+          command: ["hermes"]
+          args: ["gateway", "run"]
+          env:
+            # ── Hermes' own HTTP API server ──
+            - { name: API_SERVER_HOST, value: "0.0.0.0" }
+            - name: API_SERVER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-family-credentials
+                  key: API_SERVER_KEY
+                  optional: false
+
+            # ── mem0 memory provider — family-scoped namespace ──
+            - { name: MEM0_URL,     value: "http://192.168.4.141:30800" }
+            - { name: MEM0_USER_ID, value: "family" }
+            - { name: MEM0_AGENT_ID, value: "hermes-family" }
+
+            # ── SearXNG for web search ──
+            - name: SEARXNG_URL
+              value: "http://searxng.searxng.svc.cluster.local:8080"
+
+            # ── Fallback / image-gen provider ──
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-family-credentials
+                  key: GEMINI_API_KEY
+                  optional: true
+
+            # ── Hermes data dir (matches volume mount below) ──
+            - { name: HERMES_DATA_DIR, value: "/opt/data" }
+          volumeMounts:
+            - { name: data, mountPath: /opt/data }
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits:   { cpu: 2,    memory: 4Gi  }
+          readinessProbe:
+            httpGet: { path: /health, port: 8642 }
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 6
+          livenessProbe:
+            exec: { command: ["pgrep", "-f", "hermes gateway run"] }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: hermes-family-data }
+        - name: seed-config
+          configMap: { name: hermes-family-config-seed }

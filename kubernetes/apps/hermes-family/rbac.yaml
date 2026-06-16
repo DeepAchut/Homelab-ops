@@ -1,0 +1,9 @@
+# Minimal ServiceAccount — family Hermes has NO K8s API needs.
+# Doesn't need to read its own ns; doesn't need to talk to the API server at all.
+# We still create the SA so the pod doesn't get default token mounted; tokens are disabled.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hermes-family
+  namespace: hermes-family
+automountServiceAccountToken: false
