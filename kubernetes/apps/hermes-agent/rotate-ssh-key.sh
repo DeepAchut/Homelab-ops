@@ -57,9 +57,10 @@ SECRET_PATH="$REPO_ROOT/$SECRET_REL"
 declare -A HOST_IPS=(
   [peladn]="192.168.4.150"
   [evox2]="192.168.4.84"
-  [ha]="192.168.4.13"
-  [pbs]="192.168.4.27"
 )
+# HA + PBS aren't direct SSH targets — they're reached via the Proxmox host
+# they live on (CT203 on peladn, CT200 on evox2) via `pct exec`. So no
+# authorized_keys file to maintain on those LXCs.
 
 log() { printf '  %s\n' "$*"; }
 heading() { printf '\n=== %s ===\n' "$*"; }

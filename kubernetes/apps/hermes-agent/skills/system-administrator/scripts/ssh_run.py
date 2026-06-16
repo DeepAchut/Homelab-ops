@@ -15,13 +15,14 @@ Usage:
   ssh_run.py peladn "kubectl -n n8n get pods"
   ssh_run.py evox2  "systemctl status ollama"
   ssh_run.py peladn "pct exec 202 -- docker logs jellyfin --tail=20"
+  ssh_run.py peladn "pct exec 203 -- docker logs homeassistant --tail=20"
+  ssh_run.py evox2  "pct exec 200 -- proxmox-backup-manager datastore list"
   ssh_run.py peladn "curl -s http://192.168.4.141:30800/health"
 
-Hosts:
-  peladn  -> root@192.168.4.150
-  evox2   -> root@192.168.4.84
-  ha      -> root@192.168.4.13
-  pbs     -> root@192.168.4.27
+Hosts (only the two Proxmox VE nodes — for HA/PBS/any LXC, use `pct exec` from
+the Proxmox host they live on):
+  peladn  -> root@192.168.4.150  (hosts CT202 media-ai-ops, CT203 home-ops/HA)
+  evox2   -> root@192.168.4.84   (hosts CT200 PBS, CT405 observability, etc.)
 
 Add --json for raw subprocess output as JSON.
 """
@@ -32,9 +33,12 @@ SSH_KEY = os.environ.get("HERMES_SSH_KEY", "/opt/data/.ssh/id_ed25519")
 HOSTS = {
     "peladn": "192.168.4.150",
     "evox2":  "192.168.4.84",
-    "ha":     "192.168.4.13",
-    "pbs":    "192.168.4.27",
 }
+# HA (CT203 @ .13) and PBS (CT200 @ .27) intentionally NOT direct SSH targets —
+# reach them via `ssh_run.py peladn "pct exec 203 -- ..."` and
+# `ssh_run.py evox2  "pct exec 200 -- ..."` respectively. The Proxmox host
+# already trusts our key; pct exec drops into the LXC; the recursive allowlist
+# check still validates the inner command. One key, two hosts, all LXCs covered.
 
 # Allowed binaries → list of allowed verbs (the FIRST non-flag token after the binary).
 # Use ["*"] for binaries where any usage is read-only (ls, cat, df, etc.).

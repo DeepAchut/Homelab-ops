@@ -19,11 +19,9 @@ Usage (dry-run, always start here):
 After user approves:
   ssh_exec.py peladn "systemctl restart nfs-server" --confirmation-quote "yes do it"
 
-Hosts:
+Hosts (Proxmox VE nodes only — LXCs reached via `pct exec`):
   peladn  -> root@192.168.4.150
   evox2   -> root@192.168.4.84
-  ha      -> root@192.168.4.13
-  pbs     -> root@192.168.4.27
 
 Every executed command is appended to /opt/data/logs/ssh-exec-audit.log with:
   timestamp, host, command, user-confirmation-quote, exit-code.
@@ -49,9 +47,12 @@ HOSTNAME = os.environ.get("HOSTNAME", "hermes-pod")
 HOSTS = {
     "peladn": "192.168.4.150",
     "evox2":  "192.168.4.84",
-    "ha":     "192.168.4.13",
-    "pbs":    "192.168.4.27",
 }
+# HA (CT203) and PBS (CT200) are reached via the Proxmox host they live on:
+#   ssh_exec.py peladn "pct exec 203 -- <state-changing-cmd-on-HA>"
+#   ssh_exec.py evox2  "pct exec 200 -- <state-changing-cmd-on-PBS>"
+# Two-step confirmation pattern still required; same NEVER_RUN hard blocks
+# apply since the wrapping pct exec command is what's audited.
 
 # Hard blocks: things we never run, even with confirmation. Extending
 # this list is cheap and one-way safe — only add patterns that have no
