@@ -20,4 +20,4 @@ Write-Host "Entering shell on $POD..." -ForegroundColor Green
 Write-Host "Starting OpenCode in /workspace/Homelab-ops..." -ForegroundColor Gray
 
 # Exec into the pod and chain the commands
-kubectl exec -it -n $NAMESPACE $POD -- bash -c "cd /workspace/Homelab-ops && opencode"
+kubectl exec -it -n $NAMESPACE $POD -- bash -c "opencode"#-c "cd /workspace/Homelab-ops && opencode"

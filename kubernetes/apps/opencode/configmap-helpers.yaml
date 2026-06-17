@@ -1,10 +1,11 @@
 # Helper scripts + context files mounted at /opt/opencode-helpers/.
 #
 # The init container copies these to:
-#   /usr/local/bin/mem0     ← mem0 CLI wrapper (curl mem0's REST API)
+#   /usr/local/bin/mem0       ← mem0 CLI wrapper (curl mem0's REST API)
+#   /usr/local/bin/clone-repo ← git clone helper into /workspace
 #   /opt/opencode-helpers/HOMELAB_CONTEXT.md ← always-loaded session context
 #
-# Both are read-only — to change them, edit this configmap + flux reconcile
+# All are read-only — to change them, edit this configmap + flux reconcile
 # (rollout will re-seed). This matches the pattern used by hermes-agent's
 # skill scripts (configmap → init container → /opt/data).
 apiVersion: v1
@@ -92,6 +93,69 @@ data:
         ;;
     esac
 
+  # ─── clone-repo helper ─────────────────────────────────────────────────────
+  # Clones a GitHub repo into /workspace and changes into the dir.
+  # Reminder: this is the standard workflow — the pod IS the dev environment.
+  # Windows files are not reachable; clone the repo here, edit + commit + push
+  # from here.
+  #
+  # Usage:
+  #   clone-repo DeepAchut/Homelab-ops
+  #   clone-repo https://github.com/owner/repo.git some-target-dir
+  clone-repo: |
+    #!/usr/bin/env bash
+    # clone-repo — clone a GitHub repo into /workspace/<name> and cd there.
+    set -euo pipefail
+
+    if [[ $# -eq 0 || "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+      cat <<'EOF'
+    clone-repo — clone a repo into /workspace/<name> for use with OpenCode.
+
+    USAGE
+      clone-repo <owner/repo> [target-dir]
+      clone-repo <full-url>   [target-dir]
+
+    EXAMPLES
+      clone-repo DeepAchut/Homelab-ops
+      clone-repo https://github.com/sst/opencode.git opencode
+
+    NOTES
+      - The pod's filesystem IS your dev environment. Edit/commit/push from here.
+      - Public repos clone unauthenticated. Private repos: configure a PAT first
+        via `gh auth login`, or set GITHUB_TOKEN and use https-with-token URLs.
+      - To bring a file in from your Windows host: from the Windows side, run
+          kubectl -n opencode cp <local-path> <pod>:/workspace/<dest>
+    EOF
+      exit 0
+    fi
+
+    SRC="$1"
+    TARGET="${2:-}"
+
+    # Normalize owner/repo → https URL
+    if [[ "$SRC" =~ ^[^/]+/[^/]+$ ]]; then
+      URL="https://github.com/${SRC}.git"
+      DEFAULT_NAME="${SRC##*/}"
+    else
+      URL="$SRC"
+      # strip .git + trailing slash for the default dir name
+      DEFAULT_NAME=$(basename "$URL" .git)
+    fi
+
+    TARGET="${TARGET:-$DEFAULT_NAME}"
+    DEST="/workspace/${TARGET}"
+
+    if [[ -d "$DEST/.git" ]]; then
+      echo "clone-repo: $DEST already exists; cd into it"
+    else
+      echo "clone-repo: cloning $URL → $DEST"
+      git clone "$URL" "$DEST"
+    fi
+
+    cd "$DEST"
+    echo "clone-repo: now in $(pwd)"
+    exec "${SHELL:-bash}"
+
   # ─── Session context loaded automatically ─────────────────────────────────
   # Referenced from opencode.json's "instructions" array. OpenCode reads this
   # at session start and feeds it to the model as system context. Keep it tight
@@ -135,7 +199,25 @@ data:
     - Deleting or overwriting SOPS-encrypted secrets
     - Destructive DB ops (DROP, TRUNCATE, DELETE all)
 
-    ## Workspace
-    - `/workspace/Homelab-ops` is your clone of the public repo
-    - `/workspace/scratch` for throwaway experiments
-    - mem0 is the persistent layer between sessions
+    ## Workspace — the pod IS the dev environment
+
+    Your filesystem here is independent of the Windows admin box. The user's
+    Windows files are NOT reachable from inside the pod. The workflow is
+    git-mediated:
+
+    1. Clone the repo you want to edit INTO the pod with `clone-repo owner/repo`
+       (or it may already be there — `/workspace/Homelab-ops` is auto-cloned
+       on first boot).
+    2. Edit / build / commit inside the pod.
+    3. Push back to GitHub from inside the pod. For push auth, the user runs
+       `gh auth login` once or sets `GITHUB_TOKEN` in the shell — don't try to
+       use the host's git credentials.
+    4. If a single file needs to come in from the Windows host, the user runs
+       (from the Windows side, NOT from in here):
+          `kubectl -n opencode cp <local-path> <pod>:/workspace/<dest>`
+
+    Layout:
+    - `/workspace/Homelab-ops` — primary working tree (auto-cloned on boot)
+    - `/workspace/<other-repo>` — anything else cloned via `clone-repo`
+    - `/workspace/scratch` — throwaway experiments
+    - mem0 — persistent layer that survives across sessions and across pod restarts

@@ -39,17 +39,26 @@ spec:
 
               echo "→ seeding /opt/opencode-helpers"
               mkdir -p /opt/opencode-helpers
-              cp /seed-helpers/mem0 /opt/opencode-helpers/mem0
+              cp /seed-helpers/mem0       /opt/opencode-helpers/mem0
+              cp /seed-helpers/clone-repo /opt/opencode-helpers/clone-repo
               cp /seed-helpers/HOMELAB_CONTEXT.md /opt/opencode-helpers/HOMELAB_CONTEXT.md
-              chmod 0755 /opt/opencode-helpers/mem0
+              chmod 0755 /opt/opencode-helpers/mem0 /opt/opencode-helpers/clone-repo
 
-              echo "→ seeding opencode.json"
+              echo "→ seeding opencode.json (dual path: OPENCODE_CONFIG + default location)"
+              # OpenCode looks for opencode.json in 3 places in this precedence:
+              #   1. project root (cwd when opencode starts)
+              #   2. $OPENCODE_CONFIG env var
+              #   3. ~/.config/opencode/opencode.json
+              # We seed BOTH (2) and (3) so providers load even if one path
+              # is somehow unreachable. Always-overwrite means GitOps edits
+              # propagate on rollout. Side effect: in-pod /model switches done
+              # via the TUI are lost on rollout — accept this; pin a different
+              # default by editing the configmap.
               mkdir -p /opt/opencode-config
-              # Always overwrite — GitOps source of truth.
-              # Side effect: in-pod /model switches done via the TUI are lost
-              # on rollout. Accept this — the default model in the json is the
-              # baseline; pin a different one by editing the configmap.
               cp /seed-config/opencode.json /opt/opencode-config/opencode.json
+
+              mkdir -p /home/node/.config/opencode
+              cp /seed-config/opencode.json /home/node/.config/opencode/opencode.json
 
               echo "→ preparing /workspace"
               mkdir -p /workspace
@@ -69,16 +78,25 @@ spec:
               echo "→ permissions"
               # Main container runs as UID 1000 (node:22-bookworm-slim's
               # 'node' user). Chown the PVC contents so opencode + git work.
-              chown -R 1000:1000 /opt/opencode-helpers /opt/opencode-config /workspace || true
+              chown -R 1000:1000 \
+                /opt/opencode-helpers \
+                /opt/opencode-config \
+                /home/node/.config \
+                /workspace || true
 
               echo "→ done"
-              ls -la /opt/opencode-helpers /opt/opencode-config
+              ls -la /opt/opencode-helpers /opt/opencode-config /home/node/.config/opencode
           volumeMounts:
             - { name: helpers-seed, mountPath: /seed-helpers }
             - { name: config-seed,  mountPath: /seed-config  }
             - { name: workspace,    mountPath: /workspace    }
             - { name: opencode-cfg, mountPath: /opt/opencode-config }
             - { name: helpers,      mountPath: /opt/opencode-helpers }
+            # Mount the home PVC here too so the init container can seed
+            # ~/.config/opencode/opencode.json directly into the PVC —
+            # otherwise the file lands in an ephemeral path and is gone
+            # once the main container starts and overlays the PVC.
+            - { name: home,         mountPath: /home/node }
 
       containers:
         # ─── The shell pod itself ──────────────────────────────────────────
@@ -107,15 +125,22 @@ spec:
                 rm -rf /var/lib/apt/lists/*
 
                 echo "[bootstrap] installing opencode CLI"
-                # Install via npm (alternative: curl-installer to ~/.opencode/bin)
-                npm install -g opencode-ai
+                # Pin to a version known to load custom providers from project
+                # config. v1.4.7–1.4.8 ship a regression (sst/opencode#23110)
+                # where providers from opencode.json silently don't load.
+                # 1.4.6 is the last known-good before that window.
+                # When bumping: verify `opencode models` lists all 4 providers
+                # before promoting the new pin.
+                npm install -g opencode-ai@1.4.6
 
-                # Symlink the mem0 helper onto PATH
-                ln -sf /opt/opencode-helpers/mem0 /usr/local/bin/mem0
+                # Symlink helpers onto PATH
+                ln -sf /opt/opencode-helpers/mem0       /usr/local/bin/mem0
+                ln -sf /opt/opencode-helpers/clone-repo /usr/local/bin/clone-repo
 
-                # Point opencode at the seeded config dir
-                mkdir -p /home/node/.config
-                ln -sf /opt/opencode-config /home/node/.config/opencode
+                # Init container already seeds ~/.config/opencode/opencode.json
+                # directly into the home PVC, AND the deployment sets
+                # OPENCODE_CONFIG=/opt/opencode-config/opencode.json — so the
+                # config is discoverable via two independent paths.
 
                 # Friendly login banner
                 cat > /etc/motd <<EOF
@@ -123,18 +148,21 @@ spec:
               │  OpenCode shell — running on $(hostname)                     │
               │                                                              │
               │  Workspace:   /workspace/Homelab-ops                         │
-              │  Helpers:     /opt/opencode-helpers   (mem0 on PATH)         │
-              │  Config:      /home/node/.config/opencode/opencode.json     │
+              │  Helpers:     mem0, clone-repo (on PATH)                     │
+              │  Config:      \$OPENCODE_CONFIG (= /opt/opencode-config/…)    │
               │                                                              │
               │  Start a coding session:                                     │
               │    cd /workspace/Homelab-ops && opencode                    │
+              │                                                              │
+              │  Clone another repo and work on it:                          │
+              │    clone-repo owner/repo                                     │
               │                                                              │
               │  Search memory:                                              │
               │    mem0 search "what is the qwen3.6 endpoint"               │
               │                                                              │
               │  Switch model from inside the TUI:                           │
-              │    /model anthropic/claude-sonnet-4-6                       │
-              │    /model ollama-evox2/gemma4:e4b                            │
+              │    /model google/gemini-2.5-flash                            │
+              │    /model ollama-evox2/qwen3.6:35b-a3b                       │
               │    /model hermes-admin/hermes-default                        │
               └──────────────────────────────────────────────────────────────┘
               EOF
@@ -169,6 +197,11 @@ spec:
               value: "http://192.168.4.141:30800"
             - name: MEM0_USER_ID
               value: "deep"
+            # Explicit config path so OpenCode never has to guess. Takes
+            # precedence over ~/.config/opencode/opencode.json (which is
+            # also seeded by the init container as a fallback).
+            - name: OPENCODE_CONFIG
+              value: "/opt/opencode-config/opencode.json"
             # Node version + npm prefix housekeeping
             - { name: HOME, value: "/home/node" }
             - { name: NPM_CONFIG_PREFIX, value: "/usr/local" }
