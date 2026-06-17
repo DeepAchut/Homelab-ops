@@ -112,10 +112,18 @@ spec:
           args:
             - |
               set -e
-              # Install OpenCode + system tools on first container start.
-              # We use a marker file so subsequent restarts skip the apt step.
-              if [ ! -f /home/node/.bootstrap-done ]; then
-                echo "[bootstrap] installing system tools"
+              # ──────────────────────────────────────────────────────────────
+              # Bootstrap is GATE-ON-BINARY, not gate-on-marker. The previous
+              # version used /home/node/.bootstrap-done on the home PVC, which
+              # caused this bug: a pod restart wipes /usr/local/bin (overlay
+              # FS) but the marker survived on the PVC, so the next start
+              # skipped install and opencode was missing. We now check the
+              # actual tools — works correctly across restarts and is self-
+              # healing if something gets manually nuked inside the pod.
+              # ──────────────────────────────────────────────────────────────
+
+              if ! command -v git >/dev/null 2>&1; then
+                echo "[bootstrap] installing system tools (apt)"
                 apt-get update -qq
                 apt-get install -y --no-install-recommends \
                   git openssh-client jq curl ca-certificates \
@@ -123,27 +131,38 @@ spec:
                   vim less procps iputils-ping dnsutils \
                   >/dev/null
                 rm -rf /var/lib/apt/lists/*
+              else
+                echo "[bootstrap] system tools already installed, skipping apt"
+              fi
 
-                echo "[bootstrap] installing opencode CLI"
-                # Pin to a version known to load custom providers from project
-                # config. v1.4.7–1.4.8 ship a regression (sst/opencode#23110)
-                # where providers from opencode.json silently don't load.
-                # 1.4.6 is the last known-good before that window.
-                # When bumping: verify `opencode models` lists all 4 providers
-                # before promoting the new pin.
-                npm install -g opencode-ai@1.4.6
+              if ! command -v opencode >/dev/null 2>&1; then
+                echo "[bootstrap] installing opencode-ai (latest from npm)"
+                # No version pin — latest is well past the old 1.4.x regression
+                # window (sst/opencode#23110 affected 1.4.7-1.4.8; current
+                # releases are 1.17+). To pin a known-good version, change to
+                # `opencode-ai@<version>` and verify with `opencode models`
+                # listing all 4 providers before promoting.
+                npm install -g opencode-ai
+                if ! command -v opencode >/dev/null 2>&1; then
+                  echo "[bootstrap] ERROR: npm install completed but opencode not on PATH"
+                  echo "[bootstrap]   PATH=$PATH"
+                  ls -la /usr/local/bin/opencode* 2>/dev/null || true
+                  exit 1
+                fi
+                echo "[bootstrap] opencode installed: $(opencode --version 2>/dev/null || echo unknown)"
+              else
+                echo "[bootstrap] opencode already installed: $(opencode --version 2>/dev/null || echo unknown)"
+              fi
 
-                # Symlink helpers onto PATH
-                ln -sf /opt/opencode-helpers/mem0       /usr/local/bin/mem0
-                ln -sf /opt/opencode-helpers/clone-repo /usr/local/bin/clone-repo
+              # Symlinks are cheap to re-create; always idempotent.
+              ln -sf /opt/opencode-helpers/mem0       /usr/local/bin/mem0
+              ln -sf /opt/opencode-helpers/clone-repo /usr/local/bin/clone-repo
 
-                # Init container already seeds ~/.config/opencode/opencode.json
-                # directly into the home PVC, AND the deployment sets
-                # OPENCODE_CONFIG=/opt/opencode-config/opencode.json — so the
-                # config is discoverable via two independent paths.
-
-                # Friendly login banner
-                cat > /etc/motd <<EOF
+              # MOTD + bashrc append — also idempotent. The init container
+              # already seeds opencode.json into both /opt/opencode-config/
+              # and /home/node/.config/opencode/, and the env block sets
+              # OPENCODE_CONFIG, so providers load from either path.
+              cat > /etc/motd <<EOF
               ┌──────────────────────────────────────────────────────────────┐
               │  OpenCode shell — running on $(hostname)                     │
               │                                                              │
@@ -166,12 +185,15 @@ spec:
               │    /model hermes-admin/hermes-default                        │
               └──────────────────────────────────────────────────────────────┘
               EOF
+              # Add motd-cat to bashrc only once
+              if ! grep -q "cat /etc/motd" /home/node/.bashrc 2>/dev/null; then
                 echo "cat /etc/motd 2>/dev/null" >> /home/node/.bashrc
-                chown -R 1000:1000 /home/node
-
-                touch /home/node/.bootstrap-done
-                echo "[bootstrap] done"
               fi
+              # Both root and node user own things in /home/node depending on
+              # how exec sessions land — keep ownership consistent.
+              chown -R 1000:1000 /home/node || true
+
+              echo "[bootstrap] ready"
 
               # Long-running idle process — user execs in to use opencode
               echo "[ready] sleeping; exec into me with: kubectl exec -it -n opencode <pod> -- bash"
