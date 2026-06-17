@@ -25,13 +25,38 @@ flux reconcile kustomization apps --with-source
 # 3. Wait for pod
 kubectl -n opencode get pods -w
 
-# 4. Exec in
-POD=$(kubectl -n opencode get pod -l app=opencode-shell -o name)
-kubectl -n opencode exec -it "$POD" -- bash
+# 4. Enter the shell (using scripts)
+# Windows (PowerShell)
+.\opencode-shell.ps1
 
-# 5. Inside the pod:
-cd /workspace/Homelab-ops
-opencode    # starts the TUI
+# Linux / Mac / Git Bash
+./opencode-shell.sh
+
+## Better Approaches
+
+### 1. kubectl plugin (Pro)
+To make this a first-class `kubectl` command, rename or symlink the script to `kubectl-opencode` and place it in your system `PATH`. You can then run it from anywhere using:
+```sh
+kubectl opencode
+```
+
+### 2. Shell Functions
+Add this to your shell profile to run `opencode-shell` from any directory:
+
+**PowerShell ($PROFILE):**
+```powershell
+function opencode-shell {
+    $POD = kubectl get pod -n opencode -l app=opencode-shell -o name | Select-Object -First 1
+    kubectl exec -it -n opencode $POD -- bash -c "cd /workspace/Homelab-ops && opencode"
+}
+```
+
+**Bash/Zsh (~/.bashrc):**
+```bash
+opencode-shell() {
+    POD=$(kubectl get pod -n opencode -l app=opencode-shell -o name | head -n 1)
+    kubectl exec -it -n opencode "$POD" -- bash -c "cd /workspace/Homelab-ops && opencode"
+}
 ```
 
 ## Files
