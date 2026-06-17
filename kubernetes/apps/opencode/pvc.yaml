@@ -6,7 +6,6 @@
 # Local-path StorageClass (already in use elsewhere in this cluster) pins each
 # PVC to the node that first scheduled the pod. Combined with `nodeSelector:
 # tier=ai-worker` in deployment.yaml, that means everything lives on Evo-X2.
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
