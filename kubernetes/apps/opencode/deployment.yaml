@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencode-shell
+  namespace: opencode
+  labels:
+    app: opencode-shell
+spec:
+  # Single replica — this is an interactive shell, not a horizontally-scaled
+  # service. PVCs are RWO anyway, second replica would block-mount-fail.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: opencode-shell }
+  template:
+    metadata:
+      labels: { app: opencode-shell }
+    spec:
+      serviceAccountName: opencode
+      # Pin to the new Evo-X2 worker so local-path PVCs follow.
+      # (qwen3.6 + gemma4 also live on Evo-X2's Ollama, so this minimizes
+      #  cross-node traffic for local-model calls.)
+      nodeSelector:
+        tier: ai-worker
+
+      initContainers:
+        # ─── Stage helpers + seed config on first run ───────────────────────
+        # Idempotent: clobbers helpers/config every rollout so GitOps edits
+        # propagate, but leaves /workspace alone (user's working repo).
+        - name: seed
+          image: alpine:3.21
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              apk add --no-cache jq bash curl >/dev/null
+
+              echo "→ seeding /opt/opencode-helpers"
+              mkdir -p /opt/opencode-helpers
+              cp /seed-helpers/mem0 /opt/opencode-helpers/mem0
+              cp /seed-helpers/HOMELAB_CONTEXT.md /opt/opencode-helpers/HOMELAB_CONTEXT.md
+              chmod 0755 /opt/opencode-helpers/mem0
+
+              echo "→ seeding opencode.json"
+              mkdir -p /opt/opencode-config
+              # Always overwrite — GitOps source of truth.
+              # Side effect: in-pod /model switches done via the TUI are lost
+              # on rollout. Accept this — the default model in the json is the
+              # baseline; pin a different one by editing the configmap.
+              cp /seed-config/opencode.json /opt/opencode-config/opencode.json
+
+              echo "→ preparing /workspace"
+              mkdir -p /workspace
+              # First-boot clone of Homelab-ops (skip if user has already cloned)
+              if [ ! -d /workspace/Homelab-ops/.git ]; then
+                echo "  cloning DeepAchut/Homelab-ops…"
+                cd /workspace
+                # Public repo — no auth needed for clone. Pushes still need
+                # the user's PAT (configured inside the shell, not here).
+                git clone --depth 50 https://github.com/DeepAchut/Homelab-ops.git \
+                  || echo "  WARN: clone failed — bring up the pod and clone manually"
+              else
+                echo "  Homelab-ops already present, skipping clone"
+              fi
+              mkdir -p /workspace/scratch
+
+              echo "→ permissions"
+              # Main container runs as UID 1000 (node:22-bookworm-slim's
+              # 'node' user). Chown the PVC contents so opencode + git work.
+              chown -R 1000:1000 /opt/opencode-helpers /opt/opencode-config /workspace || true
+
+              echo "→ done"
+              ls -la /opt/opencode-helpers /opt/opencode-config
+          volumeMounts:
+            - { name: helpers-seed, mountPath: /seed-helpers }
+            - { name: config-seed,  mountPath: /seed-config  }
+            - { name: workspace,    mountPath: /workspace    }
+            - { name: opencode-cfg, mountPath: /opt/opencode-config }
+            - { name: helpers,      mountPath: /opt/opencode-helpers }
+
+      containers:
+        # ─── The shell pod itself ──────────────────────────────────────────
+        # node:22-bookworm-slim because OpenCode ships node bits + we want
+        # a recent debian for git/curl/openssh-client/jq/python3.
+        # The container stays alive with `sleep infinity`; the user accesses
+        # it via `kubectl exec -it -n opencode opencode-shell-XXXX -- bash`
+        # and runs `opencode` from there.
+        - name: shell
+          image: node:22-bookworm-slim
+          imagePullPolicy: IfNotPresent
+          command: ["bash", "-lc"]
+          args:
+            - |
+              set -e
+              # Install OpenCode + system tools on first container start.
+              # We use a marker file so subsequent restarts skip the apt step.
+              if [ ! -f /home/node/.bootstrap-done ]; then
+                echo "[bootstrap] installing system tools"
+                apt-get update -qq
+                apt-get install -y --no-install-recommends \
+                  git openssh-client jq curl ca-certificates \
+                  python3 python3-pip python3-requests \
+                  vim less procps iputils-ping dnsutils \
+                  >/dev/null
+                rm -rf /var/lib/apt/lists/*
+
+                echo "[bootstrap] installing opencode CLI"
+                # Install via npm (alternative: curl-installer to ~/.opencode/bin)
+                npm install -g opencode-ai
+
+                # Symlink the mem0 helper onto PATH
+                ln -sf /opt/opencode-helpers/mem0 /usr/local/bin/mem0
+
+                # Point opencode at the seeded config dir
+                mkdir -p /home/node/.config
+                ln -sf /opt/opencode-config /home/node/.config/opencode
+
+                # Friendly login banner
+                cat > /etc/motd <<EOF
+              ┌──────────────────────────────────────────────────────────────┐
+              │  OpenCode shell — running on $(hostname)                     │
+              │                                                              │
+              │  Workspace:   /workspace/Homelab-ops                         │
+              │  Helpers:     /opt/opencode-helpers   (mem0 on PATH)         │
+              │  Config:      /home/node/.config/opencode/opencode.json     │
+              │                                                              │
+              │  Start a coding session:                                     │
+              │    cd /workspace/Homelab-ops && opencode                    │
+              │                                                              │
+              │  Search memory:                                              │
+              │    mem0 search "what is the qwen3.6 endpoint"               │
+              │                                                              │
+              │  Switch model from inside the TUI:                           │
+              │    /model anthropic/claude-sonnet-4-6                       │
+              │    /model ollama-evox2/gemma4:e4b                            │
+              │    /model hermes-admin/hermes-default                        │
+              └──────────────────────────────────────────────────────────────┘
+              EOF
+                echo "cat /etc/motd 2>/dev/null" >> /home/node/.bashrc
+                chown -R 1000:1000 /home/node
+
+                touch /home/node/.bootstrap-done
+                echo "[bootstrap] done"
+              fi
+
+              # Long-running idle process — user execs in to use opencode
+              echo "[ready] sleeping; exec into me with: kubectl exec -it -n opencode <pod> -- bash"
+              exec sleep infinity
+          env:
+            # ─── Provider auth ────────────────────────────────────────────
+            # Gemini API key — picked up automatically by @ai-sdk/google.
+            # Uses the free-tier Gemini API (AI Studio). Same key value as
+            # hermes-credentials.GEMINI_API_KEY — reuse it.
+            - name: GOOGLE_GENERATIVE_AI_API_KEY
+              valueFrom:
+                secretKeyRef: { name: opencode-credentials, key: GOOGLE_GENERATIVE_AI_API_KEY, optional: false }
+            # Hermes admin / family API_SERVER_KEY values — referenced via
+            # {env:HERMES_*_KEY} in opencode.json
+            - name: HERMES_ADMIN_KEY
+              valueFrom:
+                secretKeyRef: { name: opencode-credentials, key: HERMES_ADMIN_KEY, optional: false }
+            - name: HERMES_FAMILY_KEY
+              valueFrom:
+                secretKeyRef: { name: opencode-credentials, key: HERMES_FAMILY_KEY, optional: false }
+            # mem0 wrapper defaults
+            - name: MEM0_URL
+              value: "http://192.168.4.141:30800"
+            - name: MEM0_USER_ID
+              value: "deep"
+            # Node version + npm prefix housekeeping
+            - { name: HOME, value: "/home/node" }
+            - { name: NPM_CONFIG_PREFIX, value: "/usr/local" }
+          workingDir: /workspace
+          volumeMounts:
+            - { name: workspace,    mountPath: /workspace }
+            - { name: opencode-cfg, mountPath: /opt/opencode-config }
+            - { name: helpers,      mountPath: /opt/opencode-helpers }
+            - { name: home,         mountPath: /home/node }
+          resources:
+            # Generous limits — running Node/npm + OpenCode + interactive shell.
+            # Local model inference happens on the Ollama host, not in this pod.
+            requests: { cpu: "200m",  memory: "512Mi" }
+            limits:   { cpu: "2000m", memory: "4Gi"   }
+          # No HTTP server in this pod, so use a process-existence liveness check.
+          # If sleep dies, the container is broken.
+          livenessProbe:
+            exec: { command: ["pgrep", "-f", "sleep infinity"] }
+            initialDelaySeconds: 120
+            periodSeconds: 60
+            failureThreshold: 3
+
+      terminationGracePeriodSeconds: 30
+
+      volumes:
+        - name: workspace
+          persistentVolumeClaim: { claimName: opencode-workspace }
+        - name: opencode-cfg
+          persistentVolumeClaim: { claimName: opencode-config }
+        - name: home
+          persistentVolumeClaim: { claimName: opencode-home }
+        # Seed sources (read-only mounts from configmaps)
+        - name: helpers-seed
+          configMap:
+            name: opencode-helpers
+            defaultMode: 0755
+        - name: config-seed
+          configMap:
+            name: opencode-config-seed
+        # In-memory staged copies of helpers/config (read-write for runtime)
+        - name: helpers
+          emptyDir: {}

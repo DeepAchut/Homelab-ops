@@ -1,0 +1,9 @@
+# Minimal ServiceAccount — OpenCode shell has NO K8s API needs.
+# Tokens disabled so the in-pod shell can't be tricked into talking to the API
+# server. If you later need kubectl from inside, mount a token explicitly.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opencode
+  namespace: opencode
+automountServiceAccountToken: false

@@ -1,0 +1,141 @@
+# Helper scripts + context files mounted at /opt/opencode-helpers/.
+#
+# The init container copies these to:
+#   /usr/local/bin/mem0     ← mem0 CLI wrapper (curl mem0's REST API)
+#   /opt/opencode-helpers/HOMELAB_CONTEXT.md ← always-loaded session context
+#
+# Both are read-only — to change them, edit this configmap + flux reconcile
+# (rollout will re-seed). This matches the pattern used by hermes-agent's
+# skill scripts (configmap → init container → /opt/data).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencode-helpers
+  namespace: opencode
+data:
+  # ─── mem0 CLI wrapper ──────────────────────────────────────────────────────
+  # Usage from inside the OpenCode shell:
+  #   mem0 search "homelab architecture preferences"
+  #   mem0 add "Decided to use OpenCode + Claude Code combo per Phase 26"
+  #   mem0 list
+  # Defaults user_id=deep — pass --user family to query the family namespace.
+  mem0: |
+    #!/usr/bin/env bash
+    # mem0 CLI wrapper — talks to the mem0 REST API for OpenCode sessions.
+    # User ID defaults to "deep". Override with --user <id> as the first arg.
+    set -euo pipefail
+    MEM0_URL="${MEM0_URL:-http://192.168.4.141:30800}"
+    USER_ID="${MEM0_USER_ID:-deep}"
+
+    # Parse --user <id> first so it can come before the subcommand
+    if [[ "${1:-}" == "--user" ]]; then
+      USER_ID="$2"
+      shift 2
+    fi
+
+    cmd="${1:-help}"
+    shift || true
+
+    case "$cmd" in
+      search)
+        query="${*:-}"
+        if [[ -z "$query" ]]; then
+          echo "usage: mem0 search <query>" >&2; exit 2
+        fi
+        curl -fsSL -X POST "$MEM0_URL/v1/memories/search" \
+          -H "Content-Type: application/json" \
+          -d "$(jq -nc --arg q "$query" --arg u "$USER_ID" \
+               '{query:$q, user_id:$u, limit:10}')"
+        echo
+        ;;
+      add)
+        content="${*:-}"
+        if [[ -z "$content" ]]; then
+          echo "usage: mem0 add <content>" >&2; exit 2
+        fi
+        curl -fsSL -X POST "$MEM0_URL/v1/memories" \
+          -H "Content-Type: application/json" \
+          -d "$(jq -nc --arg c "$content" --arg u "$USER_ID" \
+               '{messages:[{role:"user",content:$c}], user_id:$u}')"
+        echo
+        ;;
+      list)
+        curl -fsSL "$MEM0_URL/v1/memories?user_id=$USER_ID"
+        echo
+        ;;
+      help|--help|-h|"")
+        cat <<EOF
+    mem0 — REST wrapper for the homelab mem0 server.
+
+    USAGE
+      mem0 [--user <id>] <command> [args]
+
+    COMMANDS
+      search <query>   Semantic search across stored memories
+      add <content>    Add a new memory fact
+      list             List all memories for this user
+      help             Show this help
+
+    DEFAULTS
+      MEM0_URL=$MEM0_URL
+      USER_ID=$USER_ID
+
+    EXAMPLES
+      mem0 search "homelab architecture preferences"
+      mem0 add "Phase 26 deployed OpenCode on Evo-X2 with 4 providers"
+      mem0 --user family search "preferences"
+    EOF
+        ;;
+      *)
+        echo "mem0: unknown command '$cmd' — try 'mem0 help'" >&2
+        exit 2
+        ;;
+    esac
+
+  # ─── Session context loaded automatically ─────────────────────────────────
+  # Referenced from opencode.json's "instructions" array. OpenCode reads this
+  # at session start and feeds it to the model as system context. Keep it tight
+  # so the prompt-token bill stays low; deep details belong in mem0.
+  HOMELAB_CONTEXT.md: |
+    # Homelab Operations Context — OpenCode session header
+
+    You are running inside the homelab cluster on `ira-evo-x2-talos-worker`
+    (Strix Halo, AMD Ryzen AI Max 395, Radeon 8060S iGPU, 96 GB UMA).
+
+    ## User
+    - **Deep** — homelab builder. Repo: DeepAchut/Homelab-ops (public).
+    - Manages everything remotely from Windows 11.
+    - Style: GitOps-first, SOPS+Age for secrets, "minimum tools that meet the goal".
+    - Commits MANUALLY — never auto-commit unless explicitly asked.
+
+    ## Available providers in this OpenCode instance
+    | Provider        | When to pick                                          |
+    |-----------------|-------------------------------------------------------|
+    | `google`        | Hard tasks via Gemini 2.5 Pro / daily-driver via Flash (free-tier API) |
+    | `ollama-evox2`  | Local-only / no-egress / multimodal (gemma4) / coding (qwen3.6) |
+    | `hermes-admin`  | Need homelab admin skills (ssh_exec, k8s_status, etc.) |
+    | `hermes-family` | Family-safe chat (no admin tools, isolated mem0)      |
+
+    For Anthropic models (Claude Opus / Sonnet / Haiku), switch to Claude Code
+    on the laptop — Anthropic API is pay-per-token with no free tier, so we
+    deliberately don't run it from this pod.
+
+    ## Live infra endpoints (all reachable from this pod)
+    - **mem0** memory: `http://192.168.4.141:30800` — call via the `mem0` CLI
+    - **Ollama** (Evo-X2 host): `http://192.168.4.84:11434`
+    - **Ollama** (Peladn LXC): `http://192.168.4.12:11434`
+    - **Grafana** (CT405): `http://192.168.4.66:3000`
+    - **Loki** (CT405): `http://192.168.4.66:3100`
+    - **Gotify**: `http://192.168.4.13:8800`
+
+    ## Live system guardrails — ALWAYS CONFIRM before:
+    - `kubectl delete` in mem0 / flux-system / kube-system / n8n / hermes-* / opencode
+    - Deleting any PVC or PV
+    - `git push --force` / `git push -f`
+    - Deleting or overwriting SOPS-encrypted secrets
+    - Destructive DB ops (DROP, TRUNCATE, DELETE all)
+
+    ## Workspace
+    - `/workspace/Homelab-ops` is your clone of the public repo
+    - `/workspace/scratch` for throwaway experiments
+    - mem0 is the persistent layer between sessions

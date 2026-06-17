@@ -1,0 +1,76 @@
+# OpenCode's main config file. Mounted at /etc/opencode/config-seed/opencode.json
+# and copied by the init container to /opt/opencode-config/opencode.json on
+# first start (so user-driven changes inside the pod survive rollouts —
+# matches the hermes-agent /opt/data/config.yaml pattern).
+#
+# Providers configured:
+#   google        → gemini-2.5-pro, flash, flash-lite          (GOOGLE_GENERATIVE_AI_API_KEY)
+#   ollama-evox2  → gemma4:e4b, qwen3.6:35b-a3b                 (no auth, LAN)
+#   hermes-admin  → admin Hermes (skills + SSH + system tools)  (HERMES_ADMIN_KEY)
+#   hermes-family → family Hermes (chat only, gemma4 backend)   (HERMES_FAMILY_KEY)
+#
+# Default model is gemini-2.5-pro — use OpenCode's /model command to switch.
+# Anthropic deliberately NOT included — pay-per-token from day one, no free
+# tier. Use Claude Code on the laptop for Anthropic work.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencode-config-seed
+  namespace: opencode
+data:
+  opencode.json: |
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "theme": "system",
+      "autoshare": false,
+      "autoupdate": false,
+      "model": "google/gemini-2.5-pro",
+      "provider": {
+        "google": {
+          "name": "Google Gemini (free-tier API)",
+          "models": {
+            "gemini-2.5-pro":       { "name": "Gemini 2.5 Pro — hard tasks (low RPM on free tier)" },
+            "gemini-2.5-flash":     { "name": "Gemini 2.5 Flash — daily-driver (generous free quota)" },
+            "gemini-2.5-flash-lite":{ "name": "Gemini 2.5 Flash-Lite — fastest/cheapest" }
+          }
+        },
+        "ollama-evox2": {
+          "npm": "@ai-sdk/openai-compatible",
+          "name": "Ollama on Evo-X2 (LAN, no egress)",
+          "options": {
+            "baseURL": "http://192.168.4.84:11434/v1",
+            "apiKey": "ollama-no-auth"
+          },
+          "models": {
+            "gemma4:e4b":         { "name": "Gemma 4 e4b — general/multimodal/agentic" },
+            "qwen3.6:35b-a3b":    { "name": "Qwen 3.6 35B-A3B — local coding default" }
+          }
+        },
+        "hermes-admin": {
+          "npm": "@ai-sdk/openai-compatible",
+          "name": "Hermes Agent — admin (skills + SSH)",
+          "options": {
+            "baseURL": "http://hermes-agent.hermes-agent.svc.cluster.local:8642/v1",
+            "apiKey": "{env:HERMES_ADMIN_KEY}"
+          },
+          "models": {
+            "hermes-default": { "name": "Hermes admin (87 skills, ssh_exec, mem0=deep)" }
+          }
+        },
+        "hermes-family": {
+          "npm": "@ai-sdk/openai-compatible",
+          "name": "Hermes Agent — family (chat only)",
+          "options": {
+            "baseURL": "http://hermes-family.hermes-family.svc.cluster.local:8642/v1",
+            "apiKey": "{env:HERMES_FAMILY_KEY}"
+          },
+          "models": {
+            "hermes-default": { "name": "Hermes family (gemma4 backend, mem0=family)" }
+          }
+        }
+      },
+      "instructions": [
+        "/workspace/Homelab-ops/CLAUDE.md",
+        "/opt/opencode-helpers/HOMELAB_CONTEXT.md"
+      ]
+    }

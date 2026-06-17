@@ -1,0 +1,44 @@
+# Three PVCs to keep concerns separate:
+#   workspace  → the cloned Homelab-ops repo + any other scratch repos
+#   config     → ~/.config/opencode (auth tokens, session history, costs.json)
+#   home       → home dir for shell history, .gitconfig, etc.
+#
+# Local-path StorageClass (already in use elsewhere in this cluster) pins each
+# PVC to the node that first scheduled the pod. Combined with `nodeSelector:
+# tier=ai-worker` in deployment.yaml, that means everything lives on Evo-X2.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opencode-workspace
+  namespace: opencode
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opencode-config
+  namespace: opencode
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opencode-home
+  namespace: opencode
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
