@@ -1,0 +1,12 @@
+# /etc/systemd/system/das-mount-watchdog.service
+# Oneshot — invoked every 2 min by das-mount-watchdog.timer.
+[Unit]
+Description=DAS stale-bind-mount watchdog (auto-recover LXC 202 after a USB flap)
+After=pve-guests.service
+ConditionPathExists=/usr/local/sbin/das-mount-watchdog.sh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/das-mount-watchdog.sh
+# Don't let a stuck pct/exec hang forever
+TimeoutStartSec=180

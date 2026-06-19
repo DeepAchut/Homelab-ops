@@ -1,0 +1,13 @@
+# /etc/systemd/system/das-mount-watchdog.timer
+# Fire the watchdog every 2 minutes (and 90s after boot).
+[Unit]
+Description=Run the DAS stale-bind-mount watchdog every 2 minutes
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=120s
+AccuracySec=15s
+Unit=das-mount-watchdog.service
+
+[Install]
+WantedBy=timers.target

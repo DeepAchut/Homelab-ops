@@ -1,0 +1,22 @@
+# /etc/udev/rules.d/99-das-usb-no-suspend.rules
+#
+# Keep the DAS USB storage chain permanently powered (no autosuspend).
+#
+# WHY: the 11TB Toshiba DAS (holds Nextcloud + Immich data) sits behind a
+# VIA USB3.1 hub -> ASMedia USB-SATA bridge and drops off the bus under I/O
+# load ("usb 6-1.1: USB disconnect" / "reset SuperSpeed Plus Gen 2x1"). The
+# SATA link is clean (SMART UDMA_CRC_Error_Count = 0) and the drive is healthy,
+# so the fault is at the USB link, not the disk. Disabling USB autosuspend on
+# the whole chain removes one trigger. This is a mitigation, not the full fix
+# (see Phase-27 doc: the durable fix is bypassing the hub / going internal SATA).
+#
+# Devices (from `lsusb`):
+#   174c:1352  ASMedia USB-SATA bridge  (the DAS enclosure)
+#   2109:0824  VIA Labs USB3.1 hub      (upstream of the DAS)
+#   2109:2824  VIA Labs USB2.0 hub      (companion hub)
+#
+# Reversible: delete this file, `udevadm control --reload`, then replug the
+# enclosure (or reboot the host).
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="174c", ATTR{idProduct}=="1352", TEST=="power/control", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2109", ATTR{idProduct}=="0824", TEST=="power/control", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2109", ATTR{idProduct}=="2824", TEST=="power/control", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
