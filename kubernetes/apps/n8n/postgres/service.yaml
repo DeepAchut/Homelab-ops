@@ -1,0 +1,15 @@
+# Headless service — n8n connects via DB_POSTGRESDB_HOST=n8n-postgres.
+# Mirrors the mem0/postgres pattern (clusterIP: None for the StatefulSet).
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-postgres
+  namespace: n8n
+spec:
+  selector:
+    app: n8n-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+  clusterIP: None

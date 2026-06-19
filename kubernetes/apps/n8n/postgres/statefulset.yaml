@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: n8n-postgres
+  namespace: n8n
+spec:
+  serviceName: n8n-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n-postgres
+  template:
+    metadata:
+      labels:
+        app: n8n-postgres
+    spec:
+      # Co-locate with n8n (which runs here) so the local-path PVC and n8n
+      # are on the same always-on node. mem0's postgres uses the same node.
+      nodeSelector:
+        kubernetes.io/hostname: ira-rpi4-talos-worker
+      containers:
+        - name: postgres
+          image: postgres:17   # plain postgres — n8n doesn't need pgvector
+          envFrom:
+            - secretRef:
+                name: n8n-postgres-creds
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "n8n", "-d", "n8n"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "n8n", "-d", "n8n"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: n8n-postgres-data

@@ -9,3 +9,8 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  # PostgreSQL backend (migrated off SQLite-on-NFS — see MIGRATION-sqlite-to-postgres.md)
+  - postgres/secret.enc.yaml
+  - postgres/pvc.yaml
+  - postgres/service.yaml
+  - postgres/statefulset.yaml

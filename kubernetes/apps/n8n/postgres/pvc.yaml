@@ -1,0 +1,15 @@
+# n8n's PostgreSQL data — on LOCAL-PATH, deliberately NOT NFS.
+# The whole point of this migration: SQLite (and now Postgres) must live on
+# node-local storage, never on the flaky DAS-backed NFS that corrupted the
+# old SQLite DB during a USB flap (see Phase-27 doc).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-postgres-data
+  namespace: n8n
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi   # n8n DB is ~35 MB recovered; 5Gi is generous headroom

@@ -83,6 +83,25 @@ spec:
                 secretKeyRef:
                   name: n8n-secrets
                   key: N8N_ENCRYPTION_KEY
+            # ─── PostgreSQL backend (migrated off SQLite-on-NFS) ───────────
+            # SQLite on the DAS-backed NFS corrupted during a USB flap. n8n now
+            # uses Postgres on local-path storage. The SAME N8N_ENCRYPTION_KEY
+            # (above) must be kept so imported credentials still decrypt.
+            - name: DB_TYPE
+              value: "postgresdb"
+            - name: DB_POSTGRESDB_HOST
+              value: "n8n-postgres"
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: "n8n"
+            - name: DB_POSTGRESDB_USER
+              value: "n8n"
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-postgres-creds
+                  key: POSTGRES_PASSWORD
             - name: UPSNAP_USERNAME
               valueFrom:
                 secretKeyRef:
