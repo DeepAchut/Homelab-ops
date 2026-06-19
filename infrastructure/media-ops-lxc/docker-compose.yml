@@ -101,8 +101,19 @@ services:
   # ============================================================
   # PRIVATE CLOUD (Nextcloud)
   # ============================================================
+  # IMAGE PIN HISTORY:
+  #   - Was `nextcloud:stable` (moving tag) — caused April 2026 maintenance-mode
+  #     lock-up: container restarted, pulled newer minor version, mid-upgrade
+  #     migration was interrupted, oc_appconfig was left half-built, Nextcloud
+  #     wedged into HTTP 500 / maintenance mode (see Phase-27-nextcloud-recovery.md).
+  #   - Now pinned to a specific version below. Bump deliberately by editing
+  #     this tag + running `docker compose up -d nextcloud` and watching
+  #     `docker logs -f nextcloud` for upgrade completion BEFORE walking away.
+  #     The recovery script (nextcloud-recover.sh in this dir) prints the
+  #     exact tag to pin based on the currently-running container — run it
+  #     once after any upgrade to capture the verified version.
   nextcloud:
-    image: nextcloud:stable
+    image: nextcloud:30.0.13-apache  # ← pin; see history note above
     container_name: nextcloud
     devices:
       - /dev/dri:/dev/dri
@@ -134,16 +145,33 @@ services:
       - REDIS_PORT=6379
     ports:
       - "8080:80"
+    # Wait for DB + Redis to be HEALTHY (not just started). If we just say
+    # "depends_on mariadb", the entrypoint can race the DB init on a cold
+    # boot — Nextcloud sees a partially-ready DB, panics, and that's how
+    # we ended up with half-built oc_appconfig.
     depends_on:
-      - mariadb
-      - nextcloud-redis
+      mariadb:
+        condition: service_healthy
+      nextcloud-redis:
+        condition: service_healthy
     networks:
       - nextcloud-net
       - default
     restart: unless-stopped
+    healthcheck:
+      # status.php returns JSON with "maintenance":false when healthy.
+      # If maintenance is stuck on, container is marked unhealthy — surfaces
+      # in `docker ps` immediately instead of silently 500ing for hours.
+      test: ["CMD-SHELL", "curl -fsS http://localhost/status.php | grep -q '\"maintenance\":false' || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 120s  # let occ upgrade finish on first start of new image
 
   mariadb:
-    image: linuxserver/mariadb:latest
+    # Pinned (was linuxserver/mariadb:latest — same auto-bump risk as nextcloud).
+    # 11.4 is current LTS; bump deliberately when planning a major-version move.
+    image: linuxserver/mariadb:11.4.7
     container_name: mariadb
     volumes:
       - /var/lib/nextcloud-db:/config
@@ -156,6 +184,14 @@ services:
     networks:
       - nextcloud-net
     restart: unless-stopped
+    healthcheck:
+      # mysqladmin ping is the canonical readiness probe for MariaDB.
+      # Used by Nextcloud's depends_on above so it can't race a half-started DB.
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
 
   nextcloud-redis:
     image: redis:7-alpine
@@ -163,6 +199,12 @@ services:
     networks:
       - nextcloud-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   # Disabled 2026-05-30: switched Nextcloud to AJAX cron mode (`php occ background:ajax`).
   # User opens Nextcloud a few times a week — running cron every 5 min generated
