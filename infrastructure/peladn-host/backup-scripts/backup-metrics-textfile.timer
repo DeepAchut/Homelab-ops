@@ -1,0 +1,9 @@
+# /etc/systemd/system/backup-metrics-textfile.timer
+[Unit]
+Description=Refresh homelab backup metrics every 15 min
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=1min
+[Install]
+WantedBy=timers.target

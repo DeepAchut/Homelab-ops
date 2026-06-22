@@ -13,6 +13,14 @@ spec:
     metadata:
       labels:
         app: qdrant
+      annotations:
+        # Scraped by the monitoring vmagent's kubernetes-pods job -> VictoriaMetrics.
+        # qdrant exposes Prometheus metrics on the REST port (:6333/metrics):
+        # collections_total, collections_vector_total, rest_responses_total/fail/avg_duration.
+        # Powers the mem0 Grafana dashboard (vector counts, growth, API health).
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "6333"
+        prometheus.io/path: "/metrics"
     spec:
       nodeSelector:
         kubernetes.io/hostname: ira-rpi4-talos-worker

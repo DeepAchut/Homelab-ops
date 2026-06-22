@@ -1,0 +1,6 @@
+# /etc/systemd/system/backup-metrics-textfile.service
+[Unit]
+Description=Emit homelab backup freshness/size metrics for node-exporter
+[Service]
+Type=oneshot
+ExecStart=/opt/backup-scripts/backup-metrics-textfile.sh
