@@ -175,10 +175,10 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: n8n-config
+            claimName: n8n-config-local
         - name: data
           persistentVolumeClaim:
-            claimName: n8n-data
+            claimName: n8n-data-local
         - name: k8s-token
           secret:
             secretName: n8n-k8s-token
