@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: homepage
+data:
+  settings.yaml: |
+    theme: dark
+    color: slate
+    title: Homelab Dashboard
+    background:
+      image: https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop
+      blur: sm
+    layout:
+      Talos Cluster:
+        style: row
+        columns: 4
+      Services:
+        style: row
+        columns: 4
+  kubernetes.yaml: |
+    mode: cluster
+  services.yaml: |
+    - Talos Cluster:
+        - N8N:
+            icon: n8n.svg
+            href: https://n8n.dkghar.duckdns.org
+            description: Workflow Automation
+            widget:
+              type: customapi
+              url: https://n8n.dkghar.duckdns.org/healthz
+              method: GET
+              mapping:
+                status: status
+        - Beszel:
+            icon: beszel.svg
+            href: http://ira-rpi4-talos-worker:30090
+            description: Homelab Monitoring
+        - Miniflux:
+            icon: miniflux.svg
+            href: http://ira-rpi4-talos-worker:30080
+            description: RSS Reader
+        - Open WebUI:
+            icon: open-webui.svg
+            href: http://ira-rpi4-talos-worker:30880
+            description: AI Interface
+  widgets.yaml: |
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: "Talos Cluster"
