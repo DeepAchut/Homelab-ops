@@ -1,0 +1,157 @@
+# OpenMemory API + MCP (SSE) server. Image is multi-arch; pinned to evo-x2.
+# Configured for the homelab Ollama (LLM qwen3:4b-instruct, embedder
+# qwen3-embedding:0.6b @ 1024 dims) — matches the existing mem0 config.
+#
+# NOTE on qdrant host: utils/memory.py hardcodes the vector_store host to
+# "mem0_store" (the upstream docker-compose service name) and never reads
+# QDRANT_HOST. "mem0_store" has an underscore, which is invalid in BOTH a k8s
+# Service name AND a hostAliases hostname (RFC 1123). So a postStart hook appends
+# the qdrant ClusterIP -> mem0_store mapping to /etc/hosts at runtime. The memory
+# client is lazy-initialized (first add), so the entry is always present in time.
+#
+# NOTE on dims: mem0 defaults the qdrant collection to 1536, but our embedder
+# (qwen3-embedding:0.6b) is 1024. mem0's create_col() SKIPS creation if the
+# collection already exists, so the ensure-collection initContainer below
+# pre-creates "openmemory" at 1024 dims (idempotent) and mem0 reuses it. Runs on
+# every pod start, so it self-heals if the qdrant PVC is ever wiped.
+#
+# Provider/model selection lives in the DB config (set via /api/v1/config/), not
+# these env vars — the image only reads llm/embedder from the DB, falling back to
+# OpenAI defaults. We PUT the Ollama config post-deploy (documented in Phase-28).
+#
+# SQLite DB persisted on a PVC via DATABASE_URL=sqlite:////data/openmemory.db.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openmemory-api-data
+  namespace: openmemory
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openmemory-api
+  namespace: openmemory
+  labels: { app: openmemory-api }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: openmemory-api }
+  template:
+    metadata:
+      labels: { app: openmemory-api }
+    spec:
+      nodeSelector:
+        tier: ai-worker
+      # Ensure the qdrant "openmemory" collection exists at 1024 dims (our
+      # embedder's size) before the API can add a memory at mem0's 1536 default.
+      # Idempotent: waits for qdrant, then GET-or-PUT. Runs every pod start.
+      initContainers:
+        - name: ensure-collection
+          image: curlimages/curl:8.11.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              Q="http://openmemory-qdrant.openmemory.svc.cluster.local:6333"
+              echo "waiting for qdrant..."
+              until curl -sf "$Q/readyz" >/dev/null 2>&1; do sleep 2; done
+              if curl -sf "$Q/collections/openmemory" >/dev/null 2>&1; then
+                echo "collection openmemory already exists — skipping"
+              else
+                echo "creating collection openmemory at 1024 dims (Cosine)"
+                curl -fsS -X PUT "$Q/collections/openmemory" \
+                  -H 'Content-Type: application/json' \
+                  -d '{"vectors":{"size":1024,"distance":"Cosine"}}'
+              fi
+          resources:
+            requests: { cpu: "10m", memory: "16Mi" }
+            limits:   { cpu: "200m", memory: "64Mi" }
+      containers:
+        - name: api
+          image: mem0/openmemory-mcp:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8765, name: http }
+          env:
+            # default user/owner of the dashboard + MCP
+            - { name: USER,    value: "deep" }
+            # OpenAI key is unused with Ollama but the config.json references it — placeholder
+            - { name: OPENAI_API_KEY, value: "sk-ollama-unused" }
+            - { name: API_KEY,        value: "sk-ollama-unused" }
+            # SQLite on the PVC (persists memories metadata + config)
+            - { name: DATABASE_URL, value: "sqlite:////data/openmemory.db" }
+            # NOTE: the image ignores QDRANT_HOST/PORT (memory.py hardcodes
+            # host "mem0_store"). Kept for documentation; real routing is the
+            # postStart /etc/hosts entry below -> openmemory-qdrant ClusterIP.
+            - { name: QDRANT_HOST, value: "openmemory-qdrant.openmemory.svc.cluster.local" }
+            - { name: QDRANT_PORT, value: "6333" }
+            # LLM via homelab Ollama (real IP — avoids OpenMemory's docker-host auto-rewrite)
+            - { name: LLM_PROVIDER,    value: "ollama" }
+            - { name: LLM_MODEL,       value: "qwen3:4b-instruct" }
+            - { name: OLLAMA_HOST,     value: "192.168.4.12" }
+            - { name: OLLAMA_BASE_URL, value: "http://192.168.4.12:11434" }
+            # Embedder via Ollama (1024-dim qwen3-embedding)
+            - { name: EMBEDDER_PROVIDER, value: "ollama" }
+            - { name: EMBEDDER_MODEL,    value: "qwen3-embedding:0.6b" }
+            # Categorization (patched categorization.py) routes at Ollama's
+            # OpenAI-compatible API. The upstream file is broken (calls a
+            # nonexistent openai SDK method) — see patches/categorization.py.
+            - { name: OPENAI_BASE_URL,   value: "http://192.168.4.12:11434/v1" }
+            - { name: CATEGORIZER_MODEL, value: "qwen3:4b-instruct" }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            # Override the broken upstream categorization.py with our working one.
+            - name: patches
+              mountPath: /usr/src/openmemory/app/utils/categorization.py
+              subPath: categorization.py
+          # memory.py dials the hardcoded host "mem0_store" (invalid as a k8s
+          # Service/hostAlias name). Map it to the qdrant ClusterIP via /etc/hosts
+          # at runtime. Idempotent; re-runs on every (re)start.
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - grep -q mem0_store /etc/hosts || echo "10.108.209.110 mem0_store" >> /etc/hosts
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "2000m", memory: "2Gi" }
+          readinessProbe:
+            httpGet: { path: /docs, port: 8765 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          # Lenient liveness — a slow add (LLM call) must not restart the pod.
+          # Only restart if /docs is unreachable for ~5 min straight.
+          livenessProbe:
+            httpGet: { path: /docs, port: 8765 }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: openmemory-api-data }
+        - name: patches
+          configMap:
+            name: openmemory-patches
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openmemory-api
+  namespace: openmemory
+  labels: { app: openmemory-api }
+spec:
+  type: NodePort
+  selector: { app: openmemory-api }
+  ports:
+    - { port: 8765, targetPort: 8765, nodePort: 30765, name: http }

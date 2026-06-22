@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openmemory
+resources:
+  - namespace.yaml
+  - qdrant.yaml
+  - api.yaml
+  - ui.yaml
+
+# Patched app files mounted over the image (see patches/ for rationale).
+# Hash-suffixed name -> changing the file auto-rolls the api Deployment.
+configMapGenerator:
+  - name: openmemory-patches
+    files:
+      - patches/categorization.py
