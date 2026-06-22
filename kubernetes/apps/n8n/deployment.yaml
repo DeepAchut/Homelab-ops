@@ -161,7 +161,7 @@ spec:
             - name: N8N_RUNNERS_STDLIB_ALLOW
               value: "*"
           volumeMounts:
-            - name: config
+            - name: runner-config
               mountPath: /etc/n8n-task-runners.json
               subPath: runner-config.json
               readOnly: true
@@ -182,3 +182,6 @@ spec:
         - name: k8s-token
           secret:
             secretName: n8n-k8s-token
+        - name: runner-config
+          configMap:
+            name: n8n-runner-config
