@@ -1,0 +1,150 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["mem0", "homelab", "backups"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "mem0 — memory, qdrant API & backups",
+  "uid": "mem0-overview",
+  "version": 1,
+  "panels": [
+    {
+      "type": "row", "title": "mem0 memory (qdrant)", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 1, "panels": []
+    },
+    {
+      "type": "stat", "title": "Total vectors", "id": 2,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "short",
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "textMode": "value_and_name" },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "sum(collections_vector_total{app=\"qdrant\"})", "legendFormat": "vectors", "instant": true }]
+    },
+    {
+      "type": "stat", "title": "Collections", "id": 3,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "short",
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none", "textMode": "value_and_name" },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "sum(collections_total{app=\"qdrant\"})", "legendFormat": "collections", "instant": true }]
+    },
+    {
+      "type": "stat", "title": "Vectors added (24h)", "id": 4,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "short",
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "textMode": "value_and_name" },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "sum(delta(collections_vector_total{app=\"qdrant\"}[24h]))", "legendFormat": "+24h", "instant": true }]
+    },
+    {
+      "type": "stat", "title": "Newest backup age (max)", "id": 5,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "s",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "yellow", "value": 691200 }, { "color": "red", "value": 1209600 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "max(homelab_backup_age_seconds)", "legendFormat": "oldest backup", "instant": true }]
+    },
+    {
+      "type": "timeseries", "title": "Vector count over time", "id": 6,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "short",
+        "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "sum(collections_vector_total{app=\"qdrant\"})", "legendFormat": "total vectors" }]
+    },
+    {
+      "type": "timeseries", "title": "qdrant API — request rate by endpoint", "id": 7,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "reqps",
+        "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never", "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "sum by (endpoint) (rate(rest_responses_total{app=\"qdrant\"}[5m]))", "legendFormat": "{{endpoint}}" }]
+    },
+    {
+      "type": "row", "title": "qdrant API health", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 }, "id": 8, "panels": []
+    },
+    {
+      "type": "timeseries", "title": "API error rate (non-2xx)", "id": 9,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "reqps",
+        "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "sum by (status) (rate(rest_responses_total{app=\"qdrant\",status!~\"2..\"}[5m]))", "legendFormat": "status {{status}}" }]
+    },
+    {
+      "type": "timeseries", "title": "API avg latency by endpoint", "id": 10,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 14 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "s",
+        "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "avg by (endpoint) (rest_responses_avg_duration_seconds{app=\"qdrant\"})", "legendFormat": "{{endpoint}}" }]
+    },
+    {
+      "type": "row", "title": "Backups (freshness & size)", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }, "id": 11, "panels": []
+    },
+    {
+      "type": "bargauge", "title": "Backup age (red = stale > 14d, yellow > 8d)", "id": 12,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 23 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "s",
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "yellow", "value": 691200 }, { "color": "red", "value": 1209600 } ] } }, "overrides": [] },
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] }, "showUnfilled": true },
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "homelab_backup_age_seconds", "legendFormat": "{{name}}", "instant": true }]
+    },
+    {
+      "type": "table", "title": "Latest backup size", "id": 13,
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 23 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "bytes",
+        "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] }, "custom": { "align": "auto" } },
+        "overrides": [{ "matcher": { "id": "byName", "options": "name" }, "properties": [{ "id": "unit", "value": "string" }] }] },
+      "options": { "showHeader": true, "sortBy": [{ "displayName": "name", "desc": false }] },
+      "transformations": [
+        { "id": "labelsToFields", "options": { "mode": "columns", "keepLabels": ["name"] } },
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "host": true, "instance": true, "job": true }, "renameByName": { "Value": "size" } } }
+      ],
+      "targets": [{ "refId": "A", "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "expr": "homelab_backup_size_bytes", "legendFormat": "{{name}}", "instant": true, "format": "table" }]
+    },
+    {
+      "type": "row", "title": "mem0 server logs (Loki)", "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 }, "id": 14, "panels": []
+    },
+    {
+      "type": "logs", "title": "mem0 namespace logs", "id": 15,
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 },
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" },
+      "targets": [{ "refId": "A", "datasource": { "type": "loki", "uid": "loki" },
+        "expr": "{namespace=\"mem0\"} |~ `(?i)error|warn|exception` " }]
+    }
+  ]
+}
