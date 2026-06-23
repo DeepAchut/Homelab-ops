@@ -16,6 +16,16 @@ spec:
       serviceAccountName: homepage
       nodeSelector:
         kubernetes.io/hostname: ira-rpi4-talos-worker
+      # The configMap is read-only; homepage needs a writable /app/config (it
+      # creates logs/, icons/, and default config files at runtime). Seed an
+      # emptyDir from the configMap, then run homepage against the emptyDir.
+      initContainers:
+        - name: copy-config
+          image: ghcr.io/gethomepage/homepage:latest
+          command: ["sh", "-c", "cp -f /config-src/*.yaml /app/config/"]
+          volumeMounts:
+            - { name: config-src, mountPath: /config-src }
+            - { name: config, mountPath: /app/config }
       containers:
         - name: homepage
           image: ghcr.io/gethomepage/homepage:latest
@@ -29,15 +39,11 @@ spec:
             # NodePort 30000 on the rpi4 worker; add extra hosts/domains here.
             - name: HOMEPAGE_ALLOWED_HOSTS
               value: "192.168.4.141:30000,ira-rpi4-talos-worker:30000,localhost:3000"
-          # Mount each config file via subPath so /app/config itself stays on the
-          # image's writable layer — homepage must mkdir /app/config/logs at
-          # runtime, which a whole-dir (read-only) configMap mount blocks (-> 500).
           volumeMounts:
-            - { name: config, mountPath: /app/config/settings.yaml,   subPath: settings.yaml }
-            - { name: config, mountPath: /app/config/kubernetes.yaml, subPath: kubernetes.yaml }
-            - { name: config, mountPath: /app/config/services.yaml,   subPath: services.yaml }
-            - { name: config, mountPath: /app/config/widgets.yaml,    subPath: widgets.yaml }
+            - { name: config, mountPath: /app/config }
       volumes:
-        - name: config
+        - name: config-src
           configMap:
             name: homepage-config
+        - name: config
+          emptyDir: {}
