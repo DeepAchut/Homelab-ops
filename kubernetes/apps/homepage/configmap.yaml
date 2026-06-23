@@ -34,15 +34,15 @@ data:
                 status: status
         - Beszel:
             icon: beszel.svg
-            href: http://ira-rpi4-talos-worker:30090
+            href: http://192.168.4.141:30090
             description: Homelab Monitoring
         - Miniflux:
             icon: miniflux.svg
-            href: http://ira-rpi4-talos-worker:30080
+            href: http://192.168.4.141:30080
             description: RSS Reader
         - Open WebUI:
             icon: open-webui.svg
-            href: http://ira-rpi4-talos-worker:30880
+            href: http://192.168.4.141:30880
             description: AI Interface
   widgets.yaml: |
     - kubernetes:

@@ -25,9 +25,18 @@ spec:
           env:
             - name: TZ
               value: America/Chicago
+            # homepage v1.x rejects requests whose Host header isn't allowlisted.
+            # NodePort 30000 on the rpi4 worker; add extra hosts/domains here.
+            - name: HOMEPAGE_ALLOWED_HOSTS
+              value: "192.168.4.141:30000,ira-rpi4-talos-worker:30000,localhost:3000"
+          # Mount each config file via subPath so /app/config itself stays on the
+          # image's writable layer — homepage must mkdir /app/config/logs at
+          # runtime, which a whole-dir (read-only) configMap mount blocks (-> 500).
           volumeMounts:
-            - name: config
-              mountPath: /app/config
+            - { name: config, mountPath: /app/config/settings.yaml,   subPath: settings.yaml }
+            - { name: config, mountPath: /app/config/kubernetes.yaml, subPath: kubernetes.yaml }
+            - { name: config, mountPath: /app/config/services.yaml,   subPath: services.yaml }
+            - { name: config, mountPath: /app/config/widgets.yaml,    subPath: widgets.yaml }
       volumes:
         - name: config
           configMap:
