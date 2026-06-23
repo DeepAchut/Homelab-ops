@@ -12,7 +12,7 @@ live at `/opt/backup-scripts/` (rpi4 + pbs) and `/home/n8n-backup/` (talos).
 
 | Script | Run as | n8n workflow | Schedule | Backs up |
 |---|---|---|---|---|
-| `rpi4-pvc-backup.sh` | `n8n-backup` | rpi4 PVC Dumps (`l8DHMWUaHEoAaQkg`) | Sat 1 AM | Logical dumps of DBs on the **rpi4 Talos node's local-path** (never captured by vzdump): mem0 qdrant + mem0 pg + miniflux pg + **n8n pg** + karakeep pg → `/mnt/pvedas/k8s-backups` |
+| `rpi4-pvc-backup.sh` | `n8n-backup` | rpi4 PVC Dumps (`l8DHMWUaHEoAaQkg`) | Sat 1 AM | Logical dumps of DBs on the **rpi4 Talos node's local-path** (never captured by vzdump): mem0 qdrant + mem0 pg + miniflux pg + **n8n pg** + karakeep pg, **plus n8n filesystem extras** (community-node manifest + `/home/data` user CSVs — not in the pg dump) → `/mnt/pvedas/k8s-backups` |
 | `talos-backup.sh` | root | Talos Config and Data Backup (`ggPHd7ROI3GVsLOL`) | Thu 2 AM | Talos etcd snapshot + YAML configs |
 | `k8s-export.sh` | root | Talos Config and Data Backup (`ggPHd7ROI3GVsLOL`) | Sun 1 AM | k8s manifest/data export |
 | `pbs-config-backup.sh` | root | *(to wire — Sat 3 AM in the PBS workflow)* | weekly | CT 200 (PBS LXC) **config only**: `pct config 200` + `/etc/proxmox-backup/` (datastore.cfg/repos, acl, remote, prune, domains, keys) + host `storage.cfg`. **NOT** the datastore chunk data. → `/mnt/pvedas/pbs-config-backups` |
