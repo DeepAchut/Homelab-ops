@@ -42,7 +42,9 @@ def get_categories_for_memory(memory: str) -> List[str]:
                 {
                     "role": "system",
                     "content": MEMORY_CATEGORIZATION_PROMPT
-                    + '\nReturn ONLY JSON of the form {"categories": ["tag", ...]}.',
+                    + '\nPick AT MOST 3 of the most relevant, general tags (fewer is fine).'
+                    + ' Avoid hyper-specific tags (hostnames, IDs).'
+                    + ' Return ONLY JSON of the form {"categories": ["tag", ...]}.',
                 },
                 {"role": "user", "content": memory},
             ],
@@ -51,7 +53,9 @@ def get_categories_for_memory(memory: str) -> List[str]:
         )
         raw = (resp.choices[0].message.content or "{}").strip()
         cats = json.loads(raw).get("categories", [])
-        return [str(c).strip().lower() for c in cats if str(c).strip()]
+        # Hard cap at 3 — qwen3:4b tends to over-tag despite the instruction.
+        cleaned = [str(c).strip().lower() for c in cats if str(c).strip()]
+        return cleaned[:3]
     except Exception as e:  # never let categorization break or slow an add
         logging.error(f"[categorization] non-fatal failure: {e}")
         return []
