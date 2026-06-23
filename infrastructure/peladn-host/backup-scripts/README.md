@@ -38,6 +38,9 @@ DAS PBS backup** (`DAS Backup to External HDD via PBS`, `lZh1YZsfXwzb2PTq`).
 ## Restore notes
 
 - **n8n pg**: `gunzip -c n8n-postgres-DATE.sql.gz | kubectl exec -i -n n8n n8n-postgres-0 -- psql -U n8n -d n8n`
+  (the `N8N_ENCRYPTION_KEY` needed to decrypt restored credentials lives in `kubernetes/apps/n8n/secret.enc.yaml`, SOPS-encrypted — keep it unchanged.)
+- **n8n files** (`/home/data` CSVs + community-node manifest): `kubectl exec -i -n n8n deploy/n8n -- tar xzf - -C / < n8n-files-DATE.tar.gz`.
+  Community nodes aren't shipped in the tar (only the manifest) — reinstall the packages listed in `nodes/package.json` (e.g. `n8n-nodes-proxmox`, `n8n-nodes-wake-on-lan`) via **Settings → Community Nodes**.
 - **PBS config**: extract the tarball, drop `/etc/proxmox-backup/*` back into a fresh
   CT 200, recreate the datastores from `datastore.cfg` pointing at the existing
   chunk dirs (the data was never deleted), then `proxmox-backup-manager` verify.
