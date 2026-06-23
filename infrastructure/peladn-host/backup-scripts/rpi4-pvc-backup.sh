@@ -17,6 +17,14 @@
 #     NFS DAS backup; now it lives on rpi4 local-path and nothing else captures it).
 #   * karakeep postgres — logical pg_dump (currently EMPTY; karakeep's real data is
 #     SQLite on the NFS assets PVC, already in the DAS backup. Kept to catch future use).
+#   * n8n filesystem extras — the pg dump covers workflows/credentials/executions,
+#     but two things live ONLY on n8n's PVCs: the community-node manifest
+#     (/home/node/.n8n/nodes/package*.json — tells a restore which nodes to
+#     reinstall, e.g. n8n-nodes-proxmox, n8n-nodes-wake-on-lan) and user files
+#     under /home/data (e.g. csvs/). Tarred together. Intentionally EXCLUDED:
+#     the encryption key (config) — it's in secret.enc.yaml (SOPS/git); the legacy
+#     database.sqlite (obsolete post-Postgres migration); nodes/node_modules
+#     (reinstallable from the manifest); binaryData (empty / DB-mode).
 #
 # Retention: keep last 14 per prefix.
 
@@ -130,12 +138,35 @@ fi
 # ---------- 4. n8n postgres (the workflow DB — local-path on rpi4, nothing else backs it up) ----------
 dump_pg n8n n8n-postgres-0 n8n-postgres 1000
 
+# ---------- 4b. n8n filesystem extras (NOT in the pg dump): community-node manifest + /home/data ----------
+log "archiving n8n filesystem extras (community-node manifest + /home/data)..."
+N8N_FILES_OUT="$DEST/n8n-files-$DATE.tar.gz"
+# -C / + relative paths so the archive restores cleanly with `tar xzf - -C /`.
+if kubectl exec -n n8n deploy/n8n -- tar czf - -C / \
+     home/data \
+     home/node/.n8n/nodes/package.json \
+     home/node/.n8n/nodes/package-lock.json \
+     2>"$TMP/n8n-files.err" > "$N8N_FILES_OUT"; then
+  NF_SIZE=$(stat -c%s "$N8N_FILES_OUT")
+  if [[ "$NF_SIZE" -lt 200 ]]; then
+    log "  X n8n-files archive suspiciously small ($NF_SIZE bytes)"
+    cat "$TMP/n8n-files.err"
+    EXIT=1
+  else
+    log "  OK n8n-files: $NF_SIZE bytes"
+  fi
+else
+  log "  X n8n-files archive failed"
+  cat "$TMP/n8n-files.err"
+  EXIT=1
+fi
+
 # ---------- 5. karakeep postgres (currently empty; real data is SQLite on NFS assets PVC) ----------
 dump_pg karakeep postgres-0 karakeep-postgres 0
 
 # ---------- 6. retention ----------
 log "applying retention (keep last $KEEP per prefix)..."
-for PREFIX in mem0-postgres mem0-qdrant-mem0 miniflux-postgres n8n-postgres karakeep-postgres; do
+for PREFIX in mem0-postgres mem0-qdrant-mem0 miniflux-postgres n8n-postgres n8n-files karakeep-postgres; do
   ls -1t "$DEST"/${PREFIX}-* 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r OLD; do
     log "  removing old: $(basename "$OLD")"
     rm -f "$OLD"
