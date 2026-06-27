@@ -5,46 +5,89 @@ metadata:
   namespace: homepage
 data:
   settings.yaml: |
+    title: Homelab Dashboard
     theme: dark
     color: slate
-    title: Homelab Dashboard
+    headerStyle: clean
     background:
       image: https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop
       blur: sm
+      brightness: 40
+    target: _blank
     layout:
-      Talos Cluster:
+      Infrastructure:
         style: row
         columns: 4
-      Services:
+      AI & Memory:
+        style: row
+        columns: 3
+      Apps:
         style: row
         columns: 4
   kubernetes.yaml: |
     mode: cluster
   services.yaml: |
-    - Talos Cluster:
-        - N8N:
-            icon: n8n.svg
-            href: https://n8n.dkghar.duckdns.org
-            description: Workflow Automation
-            widget:
-              type: customapi
-              url: https://n8n.dkghar.duckdns.org/healthz
-              method: GET
-              mapping:
-                status: status
-        - Beszel:
-            icon: beszel.svg
-            href: http://192.168.4.141:30090
-            description: Homelab Monitoring
-        - Miniflux:
-            icon: miniflux.svg
-            href: http://192.168.4.141:30080
-            description: RSS Reader
+    - Infrastructure:
+        - Proxmox (Peladn):
+            icon: proxmox.svg
+            href: https://192.168.4.150:8006
+            description: Main host — VMs/LXCs
+        - Proxmox (Evo-X2):
+            icon: proxmox.svg
+            href: https://192.168.4.84:8006
+            description: AI worker host
+        - Proxmox Backup Server:
+            icon: proxmox-backup-server.svg
+            href: https://192.168.4.27:8007
+            description: PBS — backups
+        - Grafana:
+            icon: grafana.svg
+            href: http://192.168.4.66:3000
+            description: Metrics & logs (observability)
+    - AI & Memory:
         - Open WebUI:
             icon: open-webui.svg
             href: http://192.168.4.141:30880
-            description: AI Interface
+            description: Chat / RAG over Ollama
+        - OpenMemory:
+            icon: mdi-brain
+            href: http://192.168.4.141:30300
+            description: Memory dashboard (mem0)
+        - SearXNG:
+            icon: searxng.svg
+            href: http://192.168.4.141:30802
+            description: Private metasearch
+    - Apps:
+        - n8n:
+            icon: n8n.svg
+            href: https://n8n.dkghar.duckdns.org
+            description: Workflow automation
+            widget:
+              type: customapi
+              # in-cluster URL — reliable from the homepage pod (no external hairpin)
+              url: http://n8n.n8n.svc.cluster.local:5678/healthz
+              refreshInterval: 30000
+              method: GET
+              mappings:
+                - field: status
+                  label: Status
+                  format: text
+        - Karakeep:
+            icon: karakeep.svg
+            href: http://192.168.4.141:30801
+            description: Bookmarks / read-it-later
+        - Miniflux:
+            icon: miniflux.svg
+            href: http://192.168.4.141:30080
+            description: RSS reader
+        - Beszel:
+            icon: beszel.svg
+            href: http://192.168.4.141:30090
+            description: Lightweight host monitoring
   widgets.yaml: |
+    # Kubernetes cluster + per-node resource usage (needs metrics-server, present).
+    # Both 'cluster' and 'nodes' blocks must be defined — a missing 'nodes' block
+    # is what caused the "Cannot read properties of undefined (reading 'show')" crash.
     - kubernetes:
         cluster:
           show: true
@@ -52,3 +95,11 @@ data:
           memory: true
           showLabel: true
           label: "Talos Cluster"
+        nodes:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+    - search:
+        provider: duckduckgo
+        target: _blank
