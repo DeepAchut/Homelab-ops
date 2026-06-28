@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: portfolio
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+
+# The site HTML lives as a real file (site/index.html) and is turned into a
+# ConfigMap here. Hash-suffixed name -> editing the HTML auto-rolls the pod.
+configMapGenerator:
+  - name: portfolio-site
+    files:
+      - site/index.html
