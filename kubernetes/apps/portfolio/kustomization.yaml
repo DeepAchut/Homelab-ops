@@ -8,8 +8,12 @@ resources:
 
 # The site HTML lives as a real file (site/index.html) and is turned into a
 # ConfigMap here. Hash-suffixed name -> editing the HTML auto-rolls the pod.
+#
+# NOTE: profile.jpg is committed in site/ but is NOT bundled here — Flux's
+# source-controller strips images (*.jpg/*.png) from its artifact by default,
+# which breaks this build. The page references it via the GitHub raw URL instead
+# (still version-controlled in the repo; the browser loads it from GitHub).
 configMapGenerator:
   - name: portfolio-site
     files:
       - site/index.html
-      - site/profile.jpg
