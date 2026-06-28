@@ -12,3 +12,4 @@ configMapGenerator:
   - name: portfolio-site
     files:
       - site/index.html
+      - site/profile.jpg
