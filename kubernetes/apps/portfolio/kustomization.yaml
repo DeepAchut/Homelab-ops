@@ -6,14 +6,15 @@ resources:
   - deployment.yaml
   - service.yaml
 
-# The site HTML lives as a real file (site/index.html) and is turned into a
-# ConfigMap here. Hash-suffixed name -> editing the HTML auto-rolls the pod.
+# The site HTML + headshot are committed in site/ and bundled into the ConfigMap
+# (hash-suffixed name -> editing either file auto-rolls the pod), so the image is
+# served from the cluster.
 #
-# NOTE: profile.jpg is committed in site/ but is NOT bundled here — Flux's
-# source-controller strips images (*.jpg/*.png) from its artifact by default,
-# which breaks this build. The page references it via the GitHub raw URL instead
-# (still version-controlled in the repo; the browser loads it from GitHub).
+# NOTE: Flux's source-controller strips *.jpg/*.png from its source artifact by
+# default, which would make this build fail with "profile.jpg: no such file".
+# The repo-root .sourceignore re-includes it via a negation rule — keep that file.
 configMapGenerator:
   - name: portfolio-site
     files:
       - site/index.html
+      - site/profile.jpg
