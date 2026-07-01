@@ -96,6 +96,7 @@
   .job .role { font-weight: 700; font-size: 1.1rem; }
   .job .meta { color: var(--muted); font-size: 0.92rem; margin: 2px 0 10px; }
   .job .meta b { color: var(--accent-dark); font-weight: 600; }
+  .job .summary { color: #33415c; font-weight: 500; font-size: 0.97rem; margin: 0 0 12px; padding-left: 12px; border-left: 3px solid var(--accent); }
   .job ul { list-style: none; display: grid; gap: 7px; }
   .job ul li { position: relative; padding-left: 20px; color: #34415c; font-size: 0.96rem; }
   .job ul li::before { content: "▹"; position: absolute; left: 0; color: var(--accent); }
@@ -138,7 +139,9 @@
   .homelab .lead { color: #94a3b8; }
   .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 36px; }
   .tier { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); padding: 22px; }
-  .tier .badge { display: inline-flex; align-items: center; gap: 8px; color: #93b4fb; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .tier .badge { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #93b4fb; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .tier .hw { word-break: break-word; }
+  .tier, .feat { overflow-wrap: anywhere; }
   .tier h3 { color: #fff; font-size: 1.1rem; margin: 8px 0 4px; }
   .tier .hw { color: #94a3b8; font-size: 0.88rem; margin-bottom: 10px; }
   .tier p { color: #cbd5e1; font-size: 0.92rem; }
@@ -171,6 +174,8 @@
     .hero-photo { order: -1; justify-self: start; }
     .hero-photo .frame { width: 200px; height: 200px; }
     .edu-list { grid-template-columns: 1fr; }
+    /* stack the homelab tiers + feature cards cleanly (no awkward 2+1 wrap) */
+    .tiers, .feat-grid { grid-template-columns: 1fr; }
   }
   @media (max-width: 760px) {
     nav.links { position: fixed; inset: 64px 0 auto 0; background: #fff; flex-direction: column; gap: 0; padding: 8px 0; border-bottom: 1px solid var(--border); display: none; }
@@ -214,10 +219,11 @@
     <div>
       <p class="hello">Hello, I'm</p>
       <h1>Deep Chhaiya</h1>
-      <p class="role">Senior Cloud Infrastructure · SRE · DevOps Engineer</p>
+      <p class="role">Senior Cloud Infrastructure · SRE · AI-Ops Engineer</p>
       <p class="intro">
-        Senior engineer with <b>10+ years</b> spanning cloud infrastructure, site reliability, DevOps automation,
-        and enterprise networking — designing and operating resilient, observable platforms at scale.
+        <b>10+ years</b> designing resilient, observable cloud platforms at scale — now building where
+        infrastructure meets AI. I pair rock-solid cloud/SRE operations with applied ML: AI-driven
+        diagnostics, self-hosted LLM platforms, and RAG + vector-memory pipelines.
         AWS Certified Solutions Architect &amp; AI Practitioner.
       </p>
       <div class="hero-actions">
@@ -251,13 +257,14 @@
 <section class="about" id="about">
   <div class="wrap">
     <p class="eyebrow">A bit about me</p>
-    <h2 class="title">Bridging network, cloud &amp; Storage end to end.</h2>
+    <h2 class="title">Bridging cloud, storage &amp; AI, end to end.</h2>
     <p style="margin-top:18px;">
       I'm a senior engineer focused on resilient, observable platforms — from AWS networking and load balancing to
       Kubernetes, Terraform, and modern observability stacks. As a former AWS Cloud Support Engineer SME for
-      <b>ELB, CloudWatch, and EventBridge</b>, I have a proven record of building internal tooling that reduces MTTR,
-      automating complex workflows, and connecting the networking and cloud disciplines. Today I lead support
-      engineering at Wasabi and run a production-grade storage infrastructure, GitOps-managed homelab as a continual proving ground.
+      <b>ELB, CloudWatch, and EventBridge</b>, I have a proven record of building internal tooling that reduces MTTR
+      and automating complex workflows. Increasingly, that means bringing <b>AI into storage operations</b> —
+      leading an AI-powered diagnostics tool at Wasabi, and running a self-hosted LLM + vector-memory stack on a
+      production-grade, GitOps-managed homelab as a continual proving ground.
     </p>
   </div>
 </section>
@@ -271,6 +278,7 @@
       <div class="job">
         <div class="role">Senior Technical Support Engineer</div>
         <div class="meta"><b>Wasabi Technologies</b> — Dallas–Fort Worth, TX (Remote) · Jul 2024 – Present</div>
+        <div class="summary">Leading support engineering and an AI-driven diagnostics initiative for S3-compatible object storage at scale.</div>
         <ul>
           <li>Lead a team of 4 Cloud Support Engineers and serve as senior escalation point for complex S3-compatible object storage, networking, and cloud infrastructure issues.</li>
           <li><b>Leading development of an AI-powered diagnostics tool</b> that analyzes load-balancer, server, and storage logs alongside large-scale operational data records — accelerating root-cause analysis across the object-storage platform.</li>
@@ -282,6 +290,7 @@
       <div class="job">
         <div class="role">Cloud Support Engineer II — Networking &amp; Monitoring</div>
         <div class="meta"><b>Amazon Web Services (AWS)</b> — Dallas, TX · Mar 2023 – Jul 2024</div>
+        <div class="summary">SME escalation authority for ELB, CloudWatch &amp; EventBridge — architecture guidance for enterprise customers.</div>
         <ul>
           <li>Achieved SME designation on ELB, CloudWatch, and EventBridge — escalation point and internal knowledge authority.</li>
           <li>Architected secure production environments for <b>20+ enterprise customers</b> (EKS/ECS/ELB) and resolved <b>250+ production escalations</b>.</li>
@@ -292,6 +301,7 @@
       <div class="job">
         <div class="role">Cloud Support Engineer — Networking &amp; Monitoring</div>
         <div class="meta"><b>Amazon Web Services (AWS)</b> — Dallas, TX · Mar 2021 – Mar 2023</div>
+        <div class="summary">Deep networking &amp; monitoring resolution across the AWS platform — 800+ cases, SME in CloudWatch &amp; EventBridge.</div>
         <ul>
           <li>Resolved <b>800+ complex cases</b> across VPC, Route 53, ELB, CloudWatch, ASG, EventBridge, Lambda, Transit Gateway, and Global Accelerator; achieved SME in CloudWatch &amp; EventBridge.</li>
           <li>Used packet-capture analysis, routing investigation, and OS performance tuning; supported large-scale events (LSEs). Built internal tooling that cut issue-resolution time by ~60%.</li>
@@ -300,6 +310,7 @@
       <div class="job">
         <div class="role">Infrastructure Engineer II — Internal Networking</div>
         <div class="meta"><b>Lumen Technologies (CenturyLink)</b> — Monroe, LA · May 2018 – Mar 2021</div>
+        <div class="summary">Large-scale network automation — powered the CenturyLink–Level3 merger across 11,000+ devices.</div>
         <ul>
           <li>Led the CenturyLink–Level3 network merger across <b>11,000+ devices</b> using Python and Ansible, automating large-scale DNS and configuration changes.</li>
           <li>Administered global internal networks across APAC, EMEA, LATAM, and NA; delivered <b>30+ network designs</b> and cut an IP-deconfliction project's time by <b>50%</b>.</li>
