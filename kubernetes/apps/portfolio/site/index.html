@@ -137,7 +137,9 @@
   .homelab .wrap { position: relative; z-index: 1; }
   .homelab .title { color: #fff; }
   .homelab .lead { color: #94a3b8; }
-  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; margin-top: 36px; }
+  .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 36px; }
+  /* stack the 3 tier cards vertically on tablets + phones (avoids cramped columns) */
+  @media (max-width: 900px) { .tiers { grid-template-columns: 1fr; } }
   .tier { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); padding: 22px; }
   .tier .badge { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #93b4fb; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
   .tier .hw { word-break: break-word; }
@@ -221,7 +223,7 @@
       <h1>Deep Chhaiya</h1>
       <p class="role">Senior Cloud Infrastructure · SRE · AI-Ops Engineer</p>
       <p class="intro">
-        <b>10+ years</b> designing resilient, observable cloud platforms at scale — now building where
+        <b>10+ years</b> supporting and designing resilient, observable cloud platforms at scale — now building where
         infrastructure meets AI. I pair rock-solid cloud/SRE operations with applied ML: AI-driven
         diagnostics, self-hosted LLM platforms, and RAG + vector-memory pipelines.
         AWS Certified Solutions Architect &amp; AI Practitioner.
