@@ -283,3 +283,21 @@ services:
       # /config root (2026-05-30). Disable to keep config dir clean.
       core: 0
     restart: unless-stopped
+
+  # ============================================================
+  # IMAGE-UPDATE MONITOR (What's Up Docker)
+  # ============================================================
+  # Watches every local container for newer image tags/digests and exposes an
+  # API (/api/containers) that the Homepage dashboard's "whatsupdocker" widget
+  # reads. Host port 3003 -> container 3000. Socket mounted read-only.
+  wud:
+    image: getwud/wud:latest
+    container_name: wud
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "3003:3000"
+    environment:
+      - TZ=America/Chicago
+      - WUD_WATCHER_LOCAL_WATCHBYDEFAULT=true
+    restart: unless-stopped
