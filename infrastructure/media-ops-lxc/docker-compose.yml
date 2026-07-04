@@ -5,7 +5,7 @@ networks:
 services:
   # Grafana Alloy — ships this LXC's Docker container logs to central Loki on CT405.
   alloy:
-    image: grafana/alloy:v1.16.1
+    image: grafana/alloy:v1.17.1
     container_name: alloy
     restart: unless-stopped
     command:
@@ -81,8 +81,17 @@ services:
     restart: unless-stopped
 
   immich-db:
+    # PINNED intentionally. This is Immich's own Postgres image; the PG major +
+    # vectorchord/pgvector versions are tied to the Immich server release. WUD
+    # will flag "18-vectorchord...-pgvector..." as newer, but that is a MAJOR
+    # PG 14->18 + extension migration that must ONLY be done as part of a
+    # coordinated Immich upgrade following Immich's DB migration notes — never a
+    # bare `docker compose pull`. The label keeps WUD watching the pg14 line so
+    # it stops surfacing the breaking jump as a routine update.
     image: ghcr.io/immich-app/postgres:14-vectorchord0.3.0-pgvectors0.2.0
     container_name: immich-db
+    labels:
+      - wud.tag.include=^14-vectorchord.*
     volumes:
       - /var/lib/immich-db:/var/lib/postgresql/data
     env_file:
@@ -94,6 +103,11 @@ services:
   immich-redis:
     image: redis:7-alpine
     container_name: immich-redis
+    # WUD default sorting picks the junk tag "32bit-stretch" as "newer" than
+    # 7-alpine. Restrict the watch to real N[-.N]-alpine tags so the false
+    # positive stops showing (and we never pull a 32-bit Debian-stretch Redis).
+    labels:
+      - wud.tag.include=^\d+(\.\d+)*-alpine$
     networks:
       - immich-net
     restart: unless-stopped
@@ -160,6 +174,9 @@ services:
   nextcloud-redis:
     image: redis:7-alpine
     container_name: nextcloud-redis
+    # Same WUD false positive as immich-redis (junk "32bit-stretch" tag).
+    labels:
+      - wud.tag.include=^\d+(\.\d+)*-alpine$
     networks:
       - nextcloud-net
     restart: unless-stopped
