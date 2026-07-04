@@ -1,0 +1,117 @@
+- Infrastructure:
+    - Proxmox (Peladn):
+        icon: proxmox.svg
+        href: https://192.168.4.150:8006
+        description: Main host — VMs/LXCs
+    - Proxmox (Evo-X2):
+        icon: proxmox.svg
+        href: https://192.168.4.84:8006
+        description: AI worker host
+    - Proxmox Backup Server:
+        icon: proxmox-backup-server.svg
+        href: https://192.168.4.27:8007
+        description: PBS — backups
+    - Nginx Proxy Manager:
+        icon: nginx-proxy-manager.svg
+        href: http://192.168.4.13:81
+        description: Reverse proxy / TLS
+    - Grafana:
+        icon: grafana.svg
+        href: http://192.168.4.66:3000
+        description: Metrics & logs
+- AI & Memory:
+    - Open WebUI:
+        icon: open-webui.svg
+        href: http://192.168.4.141:30880
+        description: Chat / RAG over Ollama
+    - OpenMemory:
+        icon: mdi-brain
+        href: http://192.168.4.141:30300
+        description: Persistent AI memory (mem0)
+    - SearXNG:
+        icon: searxng.svg
+        href: http://192.168.4.141:30802
+        description: Private metasearch
+- Media & Files:
+    - Nextcloud:
+        icon: nextcloud.svg
+        href: http://192.168.4.12:8080
+        description: Files, sync & share
+    - Immich:
+        icon: immich.svg
+        href: http://192.168.4.12:2283
+        description: Photos & videos (AI)
+    - Jellyfin:
+        icon: jellyfin.svg
+        href: http://192.168.4.12:8096
+        description: Media streaming
+    - Webtop:
+        icon: mdi-monitor-dashboard
+        href: http://192.168.4.12:3000
+        description: Browser-based desktop
+- Smart Home & Utilities:
+    - Home Assistant:
+        icon: home-assistant.svg
+        href: http://192.168.4.13:8123
+        description: Smart-home hub
+    - Vaultwarden:
+        icon: vaultwarden.svg
+        href: http://192.168.4.13:8443
+        description: Password manager
+    - Gotify:
+        icon: gotify.svg
+        href: http://192.168.4.13:8800
+        description: Push notifications
+    - UpSnap:
+        icon: mdi-power-plug
+        href: http://192.168.4.13:8090
+        description: Wake-on-LAN control
+    - Obsidian Sync:
+        icon: obsidian.svg
+        href: http://192.168.4.13:5984/_utils
+        description: Notes LiveSync (CouchDB)
+- Productivity:
+    - n8n:
+        icon: n8n.svg
+        href: https://n8n.dkghar.duckdns.org
+        description: Workflow automation
+        widget:
+          type: customapi
+          url: http://n8n.n8n.svc.cluster.local:5678/healthz
+          refreshInterval: 30000
+          method: GET
+          mappings:
+            - field: status
+              label: Status
+              format: text
+    - Karakeep:
+        icon: karakeep.svg
+        href: http://192.168.4.141:30801
+        description: Bookmarks / read-it-later
+    - Miniflux:
+        icon: miniflux.svg
+        href: http://192.168.4.141:30080
+        description: RSS reader
+    - Portfolio:
+        icon: mdi-account-box
+        href: http://192.168.4.141:30900
+        description: Personal portfolio site
+- Monitoring & Updates:
+    - Beszel:
+        icon: beszel.svg
+        href: http://192.168.4.141:30090
+        description: Lightweight host monitoring
+    - Updates — Media (.12):
+        icon: mdi-package-up
+        href: http://192.168.4.12:3003
+        description: Docker image updates
+        widget:
+          type: whatsupdocker
+          url: http://192.168.4.12:3003
+    - Updates — Home (.13):
+        icon: mdi-package-up
+        href: http://192.168.4.13:3003
+        description: Docker image updates
+        widget:
+          type: whatsupdocker
+          url: http://192.168.4.13:3003

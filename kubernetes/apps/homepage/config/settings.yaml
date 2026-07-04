@@ -1,0 +1,19 @@
+title: Homelab Dashboard
+theme: dark
+color: slate
+headerStyle: clean
+# Dark, cool-toned network backdrop. brightness<100 darkens; saturate mutes the
+# colour so light text stays readable. Swap the image: URL to re-theme.
+background:
+  image: https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2400&auto=format&fit=crop
+  blur: sm
+  brightness: 40
+  saturate: 50
+target: _blank
+layout:
+  Infrastructure:      { style: row, columns: 5 }
+  AI & Memory:         { style: row, columns: 3 }
+  Media & Files:       { style: row, columns: 4 }
+  Smart Home & Utilities: { style: row, columns: 5 }
+  Productivity:        { style: row, columns: 4 }
+  Monitoring & Updates: { style: row, columns: 3 }

@@ -1,0 +1,17 @@
+# Kubernetes cluster + per-node CPU/memory (needs metrics-server; both blocks
+# required — a missing 'nodes' block crashes the widget).
+- kubernetes:
+    cluster:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
+      label: "Talos Cluster"
+    nodes:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
+- search:
+    provider: duckduckgo
+    target: _blank
