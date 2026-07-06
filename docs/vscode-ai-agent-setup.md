@@ -15,6 +15,21 @@ homelab (no cloud, no per-token cost).
 Lighter alternatives that also work with the same endpoint: **Continue.dev** (adds
 inline autocomplete) and **Roo Code** (Cline fork, more knobs). Pick Cline first.
 
+> **Cline is free.** It's open-source; pointed at your own Ollama it costs nothing —
+> no account, no credits. The "sign in / buy credits" prompt you may see is only for
+> Cline's *optional* hosted-model provider. Just select the **Ollama** provider and
+> ignore it. All the extensions in this doc are free and open-source.
+
+**Free + open-source options that work with your LAN Ollama** (all use the same
+`http://192.168.4.84:11434` endpoint):
+
+| Tool | Notes |
+|---|---|
+| **Cline** | Recommended — closest to Claude Code. Choose the Ollama provider. |
+| **Roo Code** | Cline fork, more settings/knobs. Same setup. |
+| **Continue.dev** | Lighter; also adds inline autocomplete. Drop-in config in the appendix. |
+| **Kilo Code** | Another Cline-family fork. |
+
 ---
 
 ## Why not the other things you mentioned
@@ -26,6 +41,19 @@ inline autocomplete) and **Roo Code** (Cline fork, more knobs). Pick Cline first
 - **Gemini CLI / Google Antigravity** — both are hard-wired to Google's Gemini
   models (API key / Vertex). They are **not** built to point at a local Ollama, so
   they can't use your self-hosted models. Not a fit for the "use my own model" goal.
+- **Cursor / Windsurf** — poor fit for a **local/LAN** Ollama, and Cursor is the one
+  that's actually *paid* (Pro subscription):
+  1. **Requests route through their cloud.** Cursor's "custom OpenAI Base URL"
+     override is validated/processed **server-side**, so the endpoint must be
+     reachable from *Cursor's* servers — not just your laptop. Your Ollama at
+     `192.168.4.84:11434` is LAN-only, so Cursor can't reach it unless you **expose
+     Ollama to the public internet via a tunnel** (ngrok/Cloudflare), which defeats
+     the private/no-egress goal and adds latency + a security hole.
+  2. **Agent mode is model-locked.** Cursor's Composer/Agent (the real file-editing
+     agent) is tied to Cursor's own models; custom/local models historically drive
+     only plain chat, not the agentic editing you want.
+  Net: use a **free, open-source, local-first** extension (Cline/Roo/Continue) that
+  talks to the LAN endpoint directly. No tunnel, no subscription.
 - **Hermes (family or admin)** — the Hermes gateways are OpenAI-compatible, **but**:
   1. They're `*.svc.cluster.local` — **in-cluster only**, so VS Code on the laptop
      can't reach them without exposing a NodePort/ingress.
@@ -133,6 +161,47 @@ curl -s http://192.168.4.84:11434/v1/chat/completions -H 'Content-Type: applicat
 ```
 
 ---
+
+## Appendix — Continue.dev drop-in config (free alternative to Cline)
+
+If you prefer Continue.dev (lighter, and it adds inline tab-autocomplete), install the
+**Continue** extension, then put this in `~/.continue/config.yaml` (create the file if
+missing). It wires chat + edit + apply to `qwen3.6` and uses the small embedding model
+for codebase indexing — all on the Evo-X2 Ollama, no cloud:
+
+```yaml
+name: homelab-local
+version: 0.0.1
+schema: v1
+models:
+  - name: Qwen3.6 (Evo-X2)
+    provider: ollama
+    model: qwen3.6:35b-a3b
+    apiBase: http://192.168.4.84:11434
+    defaultCompletionOptions:
+      contextLength: 32768
+    roles:
+      - chat
+      - edit
+      - apply
+  - name: Gemma4 (fast fallback)
+    provider: ollama
+    model: gemma4:e4b
+    apiBase: http://192.168.4.84:11434
+    roles:
+      - chat
+  - name: Nomic-style embeddings (Evo-X2)
+    provider: ollama
+    model: qwen3-embedding:0.6b
+    apiBase: http://192.168.4.84:11434
+    roles:
+      - embed
+```
+
+Then open Continue's sidebar, pick **Qwen3.6 (Evo-X2)**, and use **Agent** mode for
+multi-step edits. (Same server-side `OLLAMA_CONTEXT_LENGTH=32768` fix from Step 0
+applies — Continue's `contextLength` above only *requests* it; the server cap is what
+actually enforces it.)
 
 ## Appendix — if you really want Hermes (skills + mem0) in VS Code
 
