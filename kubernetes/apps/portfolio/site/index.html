@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Deep Chhaiya — Cloud · SRE · DevOps Engineer</title>
-<meta name="description" content="Deep Chhaiya — Senior engineer with 10+ years across cloud infrastructure, site reliability, DevOps automation, and enterprise networking. AWS Certified Solutions Architect & AI Practitioner." />
+<title>Deep Chhaiya — Site Reliability · Observability · Cloud Engineer</title>
+<meta name="description" content="Deep Chhaiya — Site Reliability & Observability Engineer. 10+ years across cloud infrastructure, monitoring/observability, and large-scale network automation. AWS SME (ELB/CloudWatch/EventBridge), Kubernetes, Prometheus/Grafana/Loki." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -220,15 +220,16 @@
     <div>
       <p class="hello">Hello, I'm</p>
       <h1>Deep Chhaiya</h1>
-      <p class="role">Senior Cloud Infrastructure · SRE · AI-Ops Engineer</p>
+      <p class="role">Site Reliability · Observability · Cloud Infrastructure Engineer</p>
       <p class="intro">
-        <b>10+ years</b> architecting resilient, production-grade cloud platforms at scale — an
-        <b>object-storage expert</b> and former AWS SME (ELB, CloudWatch, EventBridge) who cuts MTTR by
-        building internal tooling and <b>integrating AI into complex operational workflows</b>. I merge
-        battle-tested SRE practice with applied ML — self-hosted LLM clusters, vector-memory pipelines,
-        and AI-driven diagnostics — and today lead support engineering at Wasabi, driving an AI-powered
-        diagnostics tool for S3-compatible storage, pressure-testing every pattern first on a self-hosted,
-        GitOps-managed homelab. AWS Certified Solutions Architect &amp; AI Practitioner.
+        <b>10+ years</b> keeping resilient, observable platforms running at scale — an AWS
+        <b>observability SME</b> (ELB, CloudWatch, EventBridge) who cuts MTTR with internal tooling,
+        automates infrastructure with Python, Ansible &amp; Terraform, and <b>operates a production-grade
+        Kubernetes platform</b> with a full Prometheus/Grafana/Loki/VictoriaMetrics observability stack.
+        I pair deep <b>network engineering</b> (BGP, routing, 11k+ device automation) with modern SRE
+        practice — SLOs, incident response, and GitOps — and today lead a reliability function at Wasabi
+        building AI-driven diagnostics for S3-compatible storage. AWS Certified Solutions Architect &amp;
+        AI Practitioner.
       </p>
       <div class="hero-actions">
         <a class="btn" href="#projects">View Projects</a>
@@ -266,7 +267,7 @@
       <div class="job">
         <div class="role">Senior Technical Support Engineer</div>
         <div class="meta"><b>Wasabi Technologies</b> — Dallas–Fort Worth, TX (Remote) · Jul 2024 – Present</div>
-        <div class="summary">Leading support engineering and an AI-driven diagnostics initiative for S3-compatible object storage at scale.</div>
+        <div class="summary">Leading a reliability function and an AI-driven diagnostics initiative for S3-compatible object storage at scale.</div>
         <ul>
           <li>Lead a team of 4 Cloud Support Engineers and serve as senior escalation point for complex S3-compatible object storage, networking, and cloud infrastructure issues.</li>
           <li><b>Leading development of an AI-powered diagnostics tool</b> that analyzes load-balancer, server, and storage logs alongside large-scale operational data records — accelerating root-cause analysis across the object-storage platform.</li>
@@ -336,6 +337,18 @@
     <p class="eyebrow">Selected work</p>
     <h2 class="title">Projects</h2>
     <div class="proj-grid">
+      <div class="proj">
+        <div class="ico">🚨</div>
+        <h3>Silent Backup-Failure RCA &amp; Self-Healing Watchdog</h3>
+        <p>Root-caused a 20-day <em>silent</em> backup failure — a shell pipefail + UID mismatch that logged success while writing nothing — then engineered backup-freshness alerting and a self-healing mount watchdog so the failure mode can't recur undetected. A real blameless-postmortem, detection, and automation story.</p>
+        <div class="tags"><span>SRE</span><span>Incident RCA</span><span>Prometheus Alerting</span><span>Bash / Python</span></div>
+      </div>
+      <div class="proj">
+        <div class="ico">📊</div>
+        <h3>Full-Stack Observability Platform</h3>
+        <p>Metrics, logs, and alerting across a hybrid Kubernetes + Proxmox estate: VictoriaMetrics + vmagent scraping every node, VM, and pod; Loki for logs via Alloy; Grafana dashboards and alert rules routed to Gotify. One pane of glass, defined entirely as code.</p>
+        <div class="tags"><span>VictoriaMetrics</span><span>Prometheus</span><span>Grafana</span><span>Loki</span><span>Alerting</span></div>
+      </div>
       <div class="proj">
         <div class="ico">🏠</div>
         <h3>High-Performance Home AI &amp; Homelab Server</h3>
@@ -444,6 +457,14 @@
     <h2 class="title">Technical Skills</h2>
     <div class="skill-grid">
       <div class="skill-card">
+        <h3><span class="dot"></span>Observability</h3>
+        <div class="chips"><span class="chip">Prometheus</span><span class="chip">Grafana</span><span class="chip">VictoriaMetrics</span><span class="chip">Loki</span><span class="chip">OpenTelemetry</span><span class="chip">CloudWatch</span><span class="chip">Datadog</span><span class="chip">ELK</span><span class="chip">Wireshark</span><span class="chip">tcpdump / tshark</span></div>
+      </div>
+      <div class="skill-card">
+        <h3><span class="dot"></span>SRE / Reliability</h3>
+        <div class="chips"><span class="chip">SLOs / SLIs</span><span class="chip">Incident response</span><span class="chip">On-call</span><span class="chip">Root-cause analysis</span><span class="chip">MTTR reduction</span><span class="chip">Runbooks</span><span class="chip">Post-mortems</span><span class="chip">Alerting</span><span class="chip">Resilient backups / DR</span></div>
+      </div>
+      <div class="skill-card">
         <h3><span class="dot"></span>Cloud</h3>
         <div class="chips"><span class="chip">AWS</span><span class="chip">EC2 / VPC</span><span class="chip">ELB</span><span class="chip">CloudWatch</span><span class="chip">EventBridge</span><span class="chip">Lambda</span><span class="chip">ECS / EKS</span><span class="chip">Transit Gateway</span><span class="chip">Route 53</span><span class="chip">S3</span><span class="chip">CloudFormation</span><span class="chip">Azure</span><span class="chip">GCP</span></div>
       </div>
@@ -452,20 +473,16 @@
         <div class="chips"><span class="chip">Docker</span><span class="chip">Kubernetes</span><span class="chip">Helm</span><span class="chip">Terraform</span><span class="chip">Ansible</span><span class="chip">GitHub Actions</span><span class="chip">Jenkins</span><span class="chip">GitOps · Flux CD</span></div>
       </div>
       <div class="skill-card">
-        <h3><span class="dot"></span>Observability</h3>
-        <div class="chips"><span class="chip">Prometheus</span><span class="chip">Grafana</span><span class="chip">OpenTelemetry</span><span class="chip">Loki</span><span class="chip">VictoriaMetrics</span><span class="chip">Datadog</span><span class="chip">ELK</span><span class="chip">Wireshark</span><span class="chip">tcpdump / tshark</span></div>
-      </div>
-      <div class="skill-card">
         <h3><span class="dot"></span>Networking</h3>
         <div class="chips"><span class="chip">TCP/IP</span><span class="chip">BGP</span><span class="chip">OSPF</span><span class="chip">MPLS</span><span class="chip">VLAN / VXLAN</span><span class="chip">VPN</span><span class="chip">SDN</span><span class="chip">OPNsense</span><span class="chip">FortiNAC</span><span class="chip">DNS</span><span class="chip">HSRP</span></div>
       </div>
       <div class="skill-card">
-        <h3><span class="dot"></span>AI / ML Ops</h3>
-        <div class="chips"><span class="chip">Ollama (ROCm + CUDA)</span><span class="chip">RAG pipelines</span><span class="chip">pgvector</span><span class="chip">Qdrant</span><span class="chip">mem0</span><span class="chip">n8n AI workflows</span></div>
-      </div>
-      <div class="skill-card">
         <h3><span class="dot"></span>Automation &amp; Platforms</h3>
         <div class="chips"><span class="chip">Python</span><span class="chip">Bash</span><span class="chip">REST APIs</span><span class="chip">n8n</span><span class="chip">Proxmox VE</span><span class="chip">Talos Linux</span><span class="chip">VMware ESXi</span><span class="chip">Linux</span><span class="chip">Git</span></div>
+      </div>
+      <div class="skill-card">
+        <h3><span class="dot"></span>AI / ML Ops</h3>
+        <div class="chips"><span class="chip">Ollama (ROCm + CUDA)</span><span class="chip">RAG pipelines</span><span class="chip">pgvector</span><span class="chip">Qdrant</span><span class="chip">mem0</span><span class="chip">n8n AI workflows</span></div>
       </div>
     </div>
   </div>
@@ -487,6 +504,11 @@
         <div class="logo"><img src="https://www.vectorlogo.zone/logos/amazon_aws/amazon_aws-icon.svg" alt="AWS" /></div>
         <div class="cname">AWS Certified AI Practitioner</div>
         <div class="cissuer">Amazon Web Services</div>
+      </div>
+      <div class="cert-tile">
+        <div class="logo"><img src="https://www.vectorlogo.zone/logos/kubernetes/kubernetes-icon.svg" alt="Kubernetes" /></div>
+        <div class="cname">Certified Kubernetes Administrator (CKA)</div>
+        <div class="cissuer">CNCF · In progress</div>
       </div>
       <a class="cert-tile" href="https://www.credly.com/badges/59dd148a-3ba6-4d09-b96c-dbcdaf36117b/public_url" target="_blank" rel="noopener">
         <div class="logo"><img src="https://www.vectorlogo.zone/logos/amazon_aws/amazon_aws-icon.svg" alt="AWS" /></div>
@@ -562,7 +584,7 @@
   <div class="wrap">
     <p class="eyebrow">Get in touch</p>
     <h2 class="title">Let's build something resilient.</h2>
-    <p class="lead">Open to conversations on cloud infrastructure, SRE, platform engineering, and AI-ops. The fastest way to reach me:</p>
+    <p class="lead">Open to conversations on site reliability, observability, platform, and cloud infrastructure engineering. The fastest way to reach me:</p>
     <div class="contact-grid">
       <div class="contact-card"><div class="k">Email</div><a href="mailto:deepkchhaiya@gmail.com">deepkchhaiya@gmail.com</a></div>
       <div class="contact-card"><div class="k">LinkedIn</div><a href="https://linkedin.com/in/deep-chhaiya" target="_blank" rel="noopener">in/deep-chhaiya</a></div>
@@ -573,7 +595,7 @@
 </section>
 
 <footer>
-  © <span id="yr"></span> Deep Chhaiya · Cloud · SRE · DevOps · Built &amp; hosted on a self-managed Kubernetes (Talos + Flux CD) homelab.
+  © <span id="yr"></span> Deep Chhaiya · SRE · Observability · Cloud · Built &amp; hosted on a self-managed Kubernetes (Talos + Flux CD) homelab.
 </footer>
 
 <script>
