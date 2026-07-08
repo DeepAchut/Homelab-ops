@@ -5,16 +5,23 @@ metadata:
   namespace: mem0
 data:
   config.yaml: |
+    # LLM + embedder point at the Evo-X2 host Ollama (192.168.4.84 — Strix Halo,
+    # always-on, 44 tok/s, KEEP_ALIVE=24h) instead of the Peladn 780M iGPU (.12).
+    # mem0 runs an LLM infer on every op (~2 calls + embed); on the slow/contended
+    # 780M those stalled, blocking mem0-server's single uvicorn worker long enough
+    # to drop it from the NodePort → intermittent 502s/timeouts. The rpi4 host is
+    # NOT the bottleneck (idle-light); the LLM backend was. Embedder is the same
+    # model (qwen3-embedding:0.6b, 1024 dims) so existing Qdrant vectors stay valid.
     llm:
       provider: "ollama"
       config:
         model: "qwen3:4b-instruct"
-        ollama_base_url: "http://192.168.4.12:11434"
+        ollama_base_url: "http://192.168.4.84:11434"
     embedder:
       provider: "ollama"
       config:
         model: "qwen3-embedding:0.6b"
-        ollama_base_url: "http://192.168.4.12:11434"
+        ollama_base_url: "http://192.168.4.84:11434"
     vector_store:
       provider: "qdrant"
       config:
