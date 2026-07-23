@@ -50,6 +50,10 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /mnt/das/nextcloud/external_locaions/Raid-Shared/shared/shared_photos:/usr/src/app/external/deepkhush_photos
       - /mnt/das/nextcloud/external_locaions/Raid-Shared/shared/deep/Deepkhush Photos:/usr/src/app/external/shared_photos
+      # External library: Kashyap & Shradhha photos from the WD drive (read-only).
+      # Host /mnt/wd-ext-hdd is bind-mounted into CT202 (mp2); Immich scans it via
+      # the in-container path below (add it under Admin -> External Libraries).
+      - "/mnt/wd-ext-hdd/Kashyap & Shradhha:/usr/src/app/external/kashyap_shradhha:ro"
     env_file:
       - .env
     ports:
@@ -81,14 +85,14 @@ services:
     restart: unless-stopped
 
   immich-db:
-    # PINNED intentionally. This is Immich's own Postgres image; the PG major +
-    # vectorchord/pgvector versions are tied to the Immich server release. WUD
-    # will flag "18-vectorchord...-pgvector..." as newer, but that is a MAJOR
-    # PG 14->18 + extension migration that must ONLY be done as part of a
-    # coordinated Immich upgrade following Immich's DB migration notes — never a
-    # bare `docker compose pull`. The label keeps WUD watching the pg14 line so
-    # it stops surfacing the breaking jump as a routine update.
-    image: ghcr.io/immich-app/postgres:14-vectorchord0.3.0-pgvectors0.2.0
+    # Immich's own Postgres image — PG major + vectorchord/pgvector versions are
+    # tied to the Immich server release. This is what Immich v3.0.x ships: still
+    # PostgreSQL 14 (NO major-version migration), VectorChord bumped 0.3.0->0.4.3
+    # (applied by Immich's startup DB migrations on the existing pg14 data dir).
+    # WUD will flag "18-vectorchord...-pgvector..." — that's a FUTURE PG14->18
+    # track needing a coordinated pg_upgrade/dump-restore; never take it via a
+    # bare `docker compose pull`. The label keeps WUD on the pg14-vectorchord line.
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
     container_name: immich-db
     labels:
       - wud.tag.include=^14-vectorchord.*

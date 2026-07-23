@@ -1,0 +1,49 @@
+# /etc/systemd/system/beszel-agent.service  (Peladn host, 192.168.4.150)
+#
+# Beszel monitoring agent. Reports host + per-filesystem metrics to the Beszel hub.
+#
+# EXTRA_FILESYSTEMS is keyed by MOUNTPOINT, not /dev/sdX. The USB drive letters
+# on this host genuinely shuffle across reboots (kernel probe order), so sdX
+# entries broke on every restart. fstab pins each drive by UUID to a fixed
+# mountpoint (see fstab-external-drives.conf), so the mountpoint is the stable
+# handle — Beszel follows it to the right drive regardless of the letter.
+# NVMe names don't shuffle, so /dev/nvme0n1 is fine as a device path.
+#
+# NOTE: /mnt/pvedas must be a PLAIN mount (no x-systemd.automount) or Beszel
+# graphs capacity but not throughput — see fstab-external-drives.conf.
+#
+# SECRETS REDACTED for this public repo. Before installing, set KEY (the Beszel
+# hub's ssh-ed25519 public key) and TOKEN (this agent's registration token) from
+# the Beszel hub UI, then: systemctl daemon-reload && systemctl enable --now beszel-agent
+[Unit]
+Description=Beszel Agent Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Environment="PORT=45876"
+Environment="KEY=ssh-ed25519 <BESZEL_HUB_PUBKEY-set-on-host>"
+Environment="TOKEN=<BESZEL_AGENT_TOKEN-set-on-host>"
+Environment="HUB_URL=<BESZEL_HUB_URL>"
+Environment="EXTRA_FILESYSTEMS=/mnt/sg-ext-hdd,/mnt/wd-ext-hdd,/mnt/pvedas,/dev/nvme0n1"
+ExecStart=/opt/beszel-agent/beszel-agent
+User=beszel
+Restart=on-failure
+RestartSec=5
+StateDirectory=beszel-agent
+AmbientCapabilities=CAP_SYS_RAWIO CAP_SYS_ADMIN
+CapabilityBoundingSet=CAP_SYS_RAWIO CAP_SYS_ADMIN
+
+# Security/sandboxing settings
+KeyringMode=private
+LockPersonality=yes
+ProtectClock=yes
+ProtectHome=read-only
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectSystem=strict
+RemoveIPC=yes
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
