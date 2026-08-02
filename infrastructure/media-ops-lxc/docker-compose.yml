@@ -122,6 +122,9 @@ services:
   nextcloud:
     image: nextcloud:stable
     container_name: nextcloud
+    # Docker Hub :stable — WUD needs this to watch the digest (see WUD note).
+    labels:
+      - wud.watch.digest=true
     devices:
       - /dev/dri:/dev/dri
     volumes:
@@ -163,6 +166,9 @@ services:
   mariadb:
     image: linuxserver/mariadb:latest
     container_name: mariadb
+    # Docker Hub :latest — WUD needs this to watch the digest.
+    labels:
+      - wud.watch.digest=true
     volumes:
       - /var/lib/nextcloud-db:/config
     environment:
@@ -230,6 +236,9 @@ services:
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
+    # Docker Hub :latest — WUD needs this to watch the digest.
+    labels:
+      - wud.watch.digest=true
     user: "1000:1000"
     group_add:
       - "44"   # video
@@ -314,6 +323,9 @@ services:
   wud:
     image: getwud/wud:latest
     container_name: wud
+    # Docker Hub :latest — WUD watches its OWN update digest too.
+    labels:
+      - wud.watch.digest=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:

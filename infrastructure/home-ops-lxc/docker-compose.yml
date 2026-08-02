@@ -69,6 +69,9 @@ services:
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
     container_name: npm
+    # Docker Hub :latest — force WUD digest watching (see vaultwarden note).
+    labels:
+      - wud.watch.digest=true
     volumes:
       - /var/lib/npm/data:/data
       - /var/lib/npm/etc/letsencrypt:/etc/letsencrypt
@@ -106,6 +109,11 @@ services:
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: vaultwarden
+    # WUD does not auto-watch digests for Docker Hub :latest images (only ghcr),
+    # so it silently missed the 1.36->1.37 update. Force digest watching so WUD
+    # flags future updates (it can't compare a version number on a rolling tag).
+    labels:
+      - wud.watch.digest=true
     volumes:
       - /var/lib/vaultwarden/data:/data
     ports:
@@ -152,6 +160,9 @@ services:
   wud:
     image: getwud/wud:latest
     container_name: wud
+    # Docker Hub :latest — force WUD to watch its OWN update digest too.
+    labels:
+      - wud.watch.digest=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
