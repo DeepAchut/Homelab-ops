@@ -15,5 +15,14 @@ resources:
   - server/configmap.yaml
   - server/deployment.yaml
   - server/service.yaml
+  - viewer/deployment.yaml
+  - viewer/service.yaml
   # mcp/deployment.yaml — disabled, image does not exist yet
   # mcp/service.yaml
+
+# Read-only web viewer UI + nginx proxy config (hash-suffixed -> edits roll the pod).
+configMapGenerator:
+  - name: mem0-viewer-web
+    files:
+      - viewer/index.html
+      - viewer/default.conf
