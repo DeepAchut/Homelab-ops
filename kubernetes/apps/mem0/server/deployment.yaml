@@ -17,7 +17,9 @@ spec:
         kubernetes.io/hostname: ira-rpi4-talos-worker
       containers:
         - name: mem0-server
-          image: ghcr.io/deepachut/mem0-server:latest
+          # mem0ai 2.0.15 (migrated 2026-08-02). Built from docker/mem0-server-2x/
+          # via build-mem0-server-2x.yml. Prev :latest = mem0ai 0.1.118 (rollback tag).
+          image: ghcr.io/deepachut/mem0-server:2x
           ports:
             - containerPort: 8000
               name: http
