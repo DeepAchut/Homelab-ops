@@ -24,10 +24,10 @@
         icon: open-webui.svg
         href: http://192.168.4.141:30880
         description: Chat / RAG over Ollama
-    - OpenMemory:
+    - mem0 Viewer:
         icon: mdi-brain
-        href: http://192.168.4.141:30300
-        description: Persistent AI memory (mem0)
+        href: http://192.168.4.141:30803
+        description: Persistent AI memory (read-only)
     - SearXNG:
         icon: searxng.svg
         href: http://192.168.4.141:30802
