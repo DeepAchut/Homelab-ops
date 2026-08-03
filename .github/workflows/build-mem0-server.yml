@@ -36,7 +36,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: docker/mem0-server
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/deepachut/mem0-server:latest
           cache-from: type=gha
