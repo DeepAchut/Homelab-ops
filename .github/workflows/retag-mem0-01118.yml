@@ -1,0 +1,32 @@
+name: Retag mem0 0.1.118 rollback
+
+# ONE-SHOT: preserve the mem0ai 0.1.118 image (currently :latest) under a stable
+# :0.1.118 tag BEFORE the consolidation rebuilds :latest as 2.x, so the rollback
+# image is never lost. Uses the built-in GITHUB_TOKEN (packages:write) — no local
+# docker/creds needed. Safe to delete after it has run once.
+on:
+  push:
+    paths:
+      - .github/workflows/retag-mem0-01118.yml
+  workflow_dispatch:
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retag :latest -> :0.1.118
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/deepachut/mem0-server:0.1.118 \
+            ghcr.io/deepachut/mem0-server:latest
+          docker buildx imagetools inspect ghcr.io/deepachut/mem0-server:0.1.118
