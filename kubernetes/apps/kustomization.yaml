@@ -5,6 +5,7 @@ resources:
   - miniflux
   - n8n
   - nut
+  - hindsight
   - open-webui
   - monitoring
   - hermes-agent

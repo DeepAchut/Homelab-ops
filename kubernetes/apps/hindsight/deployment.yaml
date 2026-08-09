@@ -1,0 +1,74 @@
+# Hindsight — self-hosted agent memory (native MCP + web UI). Replaces mem0.
+# All-in-one image: API+MCP (8888) + control-plane UI (9999) + embedded postgres.
+# LLM (retain/graph extraction) offloaded to the .84 Ollama (qwen3.6:35b-a3b);
+# embeddings (bge-small 384-d) + reranker (ms-marco-MiniLM) run locally in-pod.
+# Pinned to the evo-x2 ai-worker (amd64, co-located with .84 Ollama).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hindsight
+  namespace: hindsight
+  labels: { app: hindsight }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }   # single RWO PVC (embedded postgres)
+  selector:
+    matchLabels: { app: hindsight }
+  template:
+    metadata:
+      labels: { app: hindsight }
+    spec:
+      nodeSelector:
+        tier: ai-worker
+      # Embedded postgres needs the data dir owned by the image's 'hindsight'
+      # user; local-path mounts it root-owned. Chown via the same image (which
+      # has the user in /etc/passwd) as root before the app starts.
+      initContainers:
+        - name: fix-perms
+          image: ghcr.io/vectorize-io/hindsight:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c", "chown -R hindsight:hindsight /home/hindsight/.pg0"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - { name: data, mountPath: /home/hindsight/.pg0 }
+      containers:
+        - name: hindsight
+          image: ghcr.io/vectorize-io/hindsight:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8888, name: api }
+            - { containerPort: 9999, name: ui }
+          env:
+            # --- LLM: retain-time extraction via .84 Ollama ---
+            - { name: HINDSIGHT_API_LLM_PROVIDER, value: "ollama" }
+            - { name: HINDSIGHT_API_LLM_MODEL,    value: "qwen3.6:35b-a3b" }
+            - { name: HINDSIGHT_API_LLM_BASE_URL, value: "http://192.168.4.84:11434" }
+            - { name: HINDSIGHT_API_LLM_API_KEY,  value: "ollama-unused" }
+            - { name: HINDSIGHT_API_LLM_OLLAMA_NUM_CTX, value: "16384" }
+            # --- embeddings + reranker stay local (defaults); cache on the PVC ---
+            - { name: HF_HOME, value: "/home/hindsight/.pg0/hf" }
+            - { name: HINDSIGHT_API_LOG_LEVEL, value: "info" }
+          volumeMounts:
+            - { name: data, mountPath: /home/hindsight/.pg0 }
+          startupProbe:
+            # First boot downloads ~215MB of models + runs DB migrations — be generous.
+            tcpSocket: { port: 8888 }
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket: { port: 8888 }
+            periodSeconds: 15
+            failureThreshold: 4
+          livenessProbe:
+            tcpSocket: { port: 8888 }
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 6
+          resources:
+            requests: { cpu: "500m", memory: "1Gi" }
+            limits:   { cpu: "3000m", memory: "3Gi" }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: hindsight-data
