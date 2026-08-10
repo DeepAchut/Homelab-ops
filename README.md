@@ -22,10 +22,10 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 │  ├── observability-lxc (CT405)     · VictoriaMetrics · Loki · Grafana   │
 │  ├── ollama-host  ← runs on host   · qwen3.6:35b-a3b · 44 tok/s         │
 │  └── ira-evo-x2-talos-worker (VM)  · K8s worker (tier=ai-worker)        │
-│       └── Hermes Agent  · Open WebUI  · Karakeep (bookmarks + AI tag)   │
+│       └── Hermes · Open WebUI · Karakeep · Hindsight (AI memory)        │
 │                                                                         │
 │  RPi4  · 4 GB · ARM64                                                   │
-│  └── Talos K8s Worker · mem0 · n8n · miniflux · beszel · nut            │
+│  └── Talos K8s Worker · n8n · miniflux · beszel · nut · monitoring      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Tier 2 — On-Demand WOL                                                 │
 │  Intel NUC  · Talos K8s Worker · general burst                          │
@@ -55,7 +55,7 @@ Production-grade homelab platform built on **Talos Linux**, **Flux CD GitOps**, 
 | Networking | OPNsense | Perimeter firewall, DNS, DHCP, NPM proxy frontends |
 | Local LLM | [Ollama](https://ollama.com/) on Evo-X2 host (ROCm/gfx1151) | qwen3.6:35b-a3b @ ~44 tok/s on iGPU UMA |
 | AI Agent | [Hermes Agent](https://hermes-agent.nousresearch.com/) | K8s pod, OpenAI-compat API, system-administrator skill |
-| AI Memory | [mem0](https://github.com/mem0ai/mem0) | Self-hosted, Peladn Ollama + Qdrant + Postgres |
+| AI Memory | [Hindsight](https://github.com/vectorize-io/hindsight) | Self-hosted on Evo-X2 — native MCP + web UI, local embeddings + reranker, graph/temporal retrieval |
 | Chat UI | [Open WebUI](https://github.com/open-webui/open-webui) | Browser front-end → both Ollama and Hermes models |
 | Observability | Grafana + Loki + VictoriaMetrics + Alloy + Beszel | CT405 LXC on Evo-X2; 90d metrics / 30d logs retention |
 | Notifications | Gotify | Grafana alerts + n8n workflows push here |
@@ -71,7 +71,7 @@ Homelab-ops/
 │   │   ├── beszel/               # At-a-glance host + container metrics
 │   │   ├── hermes-agent/         # ⚕ Agent (skills + helper scripts + lab brain)
 │   │   ├── karakeep/             # Bookmarks + AI auto-tag (assets on NFS DAS)
-│   │   ├── mem0/                 # AI memory layer (Postgres + Qdrant + server)
+│   │   ├── hindsight/            # AI memory layer (Hindsight — native MCP + web UI)
 │   │   ├── miniflux/             # RSS feed reader
 │   │   ├── monitoring/           # vmagent + alloy-logs (K8s metrics + pod logs)
 │   │   ├── n8n/                  # Workflow automation
@@ -86,8 +86,6 @@ Homelab-ops/
 │   ├── observability-lxc/        # CT405 — VM + Loki + Grafana + Alloy
 │   ├── ollama-host/              # Ollama systemd config (on Evo-X2 host)
 │   └── failover/                 # Peladn→Evo-X2 failover runbook + n8n workflows
-├── docker/
-│   └── mem0-server/              # Custom mem0 FastAPI server image
 ├── docs/                         # Solution guides and case studies
 ├── ADR/                          # Architectural Decision Records
 └── cluster.env.example           # All environment-specific values documented
@@ -102,7 +100,7 @@ Homelab-ops/
 | **hermes-agent** | `hermes-agent` | `tier=ai-worker` (Evo-X2) | Multi-LLM agent (qwen3.6 local + Gemini/Anthropic fallback) with a custom `system-administrator` skill that knows the whole lab | [README](kubernetes/apps/hermes-agent/README.md) |
 | **open-webui** | `open-webui` | `tier=ai-worker` (Evo-X2) | Browser chat — connects to both Ollama (direct chat with qwen3.6) and Hermes (agent mode with tools) | [README](kubernetes/apps/open-webui/README.md) |
 | **karakeep** | `karakeep` | `tier=ai-worker` (Evo-X2) | Bookmark + read-later manager. Native iOS/Android/extensions. Auto-tags via Peladn Ollama. Assets on NFS DAS. Miniflux→Karakeep starred-entry sync runs every 15 min | [README](kubernetes/apps/karakeep/README.md) |
-| mem0 | `mem0` | rpi4 (hostname pinned) | Stateful AI memory layer — Postgres + Qdrant + REST API | [README](kubernetes/apps/mem0/README.md) |
+| **hindsight** | `hindsight` | `tier=ai-worker` (Evo-X2) | AI memory — native MCP + web UI + knowledge-graph retrieval (semantic/BM25/graph/temporal + cross-encoder rerank) | [case study](docs/case-study-ai-memory-layer.md) |
 | n8n | `n8n` | `tier=always-on` (rpi4) | Workflow automation, WOL triggers, AI pipelines, Beszel→HA bridges | [README](kubernetes/apps/n8n/README.md) |
 | miniflux | `miniflux` | `tier=always-on` (rpi4) | Lightweight RSS reader | [README](kubernetes/apps/miniflux/README.md) |
 | beszel | `beszel` | `tier=always-on` (rpi4) + agents on every node | Host + container system metrics — parallel to VM/Loki, at-a-glance | [README](kubernetes/apps/beszel/README.md) |
@@ -152,7 +150,7 @@ Burst nodes (NUC, i9) are powered off when idle. n8n workflows trigger WOL via U
 The `system-administrator` skill in [`kubernetes/apps/hermes-agent/skills/`](kubernetes/apps/hermes-agent/skills/system-administrator/) embeds a complete topology map plus 6 read-only helper scripts:
 
 - `k8s_status.py` — pod state across the cluster (in-cluster ServiceAccount + RBAC)
-- `service_health.py` — HTTP health of 12 known services (Ollama, mem0, Grafana, …)
+- `service_health.py` — HTTP health of known services (Ollama, Hindsight, Grafana, …)
 - `vm_query.py` — PromQL/MetricsQL against VictoriaMetrics
 - `loki_query.py` — LogQL against Loki
 - `proxmox_status.py` — Proxmox VE read-only API (PVEAuditor token)
@@ -165,7 +163,7 @@ Open WebUI sits in front. Ask *"any K8s pods restarting in the last hour?"* or *
 
 ## Docs & Case Studies
 
-- [Self-hosted AI Memory Layer with mem0](docs/case-study-ai-memory-layer.md)
+- [Self-hosted AI Memory Layer — mem0 → Hindsight](docs/case-study-ai-memory-layer.md)
 - [GitOps on Talos with Flux CD and SOPS](docs/case-study-gitops-talos-flux.md)
 
 ---

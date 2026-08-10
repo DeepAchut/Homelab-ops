@@ -59,10 +59,10 @@ inline autocomplete) and **Roo Code** (Cline fork, more knobs). Pick Cline first
      can't reach them without exposing a NodePort/ingress.
   2. `hermes-family` is **gemma4:e4b-backed** (a ~4B model) — too small to drive
      agentic coding reliably (weak multi-step tool use, small effective context).
-  3. Hermes is a *personal-assistant* agent (skills, mem0, SSH) — routing coding
+  3. Hermes is a *personal-assistant* agent (skills, memory, SSH) — routing coding
      through it adds a hop and its system prompt without improving code quality.
   Going straight to `qwen3.6` on the Evo-X2 Ollama is both **reachable** and
-  **stronger for code**. (If you still want Hermes-in-VS-Code for its skills/mem0,
+  **stronger for code**. (If you still want Hermes-in-VS-Code for its skills/memory,
   see the appendix — it needs a NodePort and you accept the gemma4 limits.)
 - **gemma4:e4b directly** — fine for quick chat, but as an *agent* it will stumble on
   multi-file edits and tool loops. Use it only as a fast fallback.
@@ -203,7 +203,7 @@ multi-step edits. (Same server-side `OLLAMA_CONTEXT_LENGTH=32768` fix from Step 
 applies — Continue's `contextLength` above only *requests* it; the server cap is what
 actually enforces it.)
 
-## Appendix — if you really want Hermes (skills + mem0) in VS Code
+## Appendix — if you really want Hermes (skills + memory) in VS Code
 
 Doable but with caveats. You'd need to:
 1. Expose the family Hermes gateway on a NodePort (it's `hermes-family.hermes-family
@@ -213,5 +213,5 @@ Doable but with caveats. You'd need to:
 3. Accept that it's **gemma4:e4b-backed** — expect weaker agentic coding than
    qwen3.6, and Hermes' assistant system-prompt/skills layered on top.
 
-Net: only worth it if you specifically want Hermes' mem0/skills *while* coding. For
+Net: only worth it if you specifically want Hermes' memory/skills *while* coding. For
 pure coding, `qwen3.6` direct is better. Not recommended as the default.

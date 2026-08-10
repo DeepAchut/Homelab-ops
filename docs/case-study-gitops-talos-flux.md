@@ -42,7 +42,7 @@ For a homelab where the RPi4 is the only always-on K8s worker, Flux's lower memo
 kubernetes/
 ├── apps/                        # Application manifests
 │   ├── kustomization.yaml       # Root — lists all apps
-│   ├── mem0/
+│   ├── hindsight/
 │   ├── n8n/
 │   └── ...
 └── clusters/
