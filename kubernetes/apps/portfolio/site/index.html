@@ -360,13 +360,13 @@
         <div class="ico">🤖</div>
         <h3>Self-Hosted AI Agent Platform — Hermes Agent</h3>
         <p>OpenAI-compatible multi-LLM agent with a custom system-administrator skill embedding the full lab topology and 7 read-only helper scripts (Kubernetes, Grafana, Loki, VictoriaMetrics, Beszel, Proxmox, service health), with fallback to Gemini Flash and Claude Sonnet via one API surface.</p>
-        <div class="tags"><span>Hermes Agent</span><span>Ollama</span><span>Open WebUI</span><span>mem0</span><span>Qdrant</span></div>
+        <div class="tags"><span>Hermes Agent</span><span>Ollama</span><span>Open WebUI</span><span>Hindsight (MCP)</span></div>
       </div>
       <div class="proj">
         <div class="ico">🧠</div>
-        <h3>AI Memory Layer — mem0 on Kubernetes</h3>
-        <p>Self-hosted persistent memory for AI agents across conversations. PostgreSQL + Qdrant as StatefulSets on a Raspberry Pi 4 worker; Ollama backend on the always-on iGPU tier. Daily logical + snapshot backups to NFS, weekly USB-3 DAS copies, monthly PBS retention.</p>
-        <div class="tags"><span>mem0</span><span>pgvector</span><span>Qdrant</span><span>Ollama</span></div>
+        <h3>AI Memory Layer — Hindsight on Kubernetes</h3>
+        <p>Self-hosted persistent memory shared across AI agents (Claude Code, Cline, Hermes) over the Model Context Protocol. Native MCP server + web UI with hybrid retrieval — semantic + BM25 + knowledge-graph + temporal, cross-encoder reranked. Embedded PostgreSQL/pgvector with local embeddings + reranker; fact extraction offloaded to on-prem Ollama. Migrated from an earlier self-hosted mem0 build.</p>
+        <div class="tags"><span>Hindsight</span><span>MCP</span><span>pgvector</span><span>Ollama</span></div>
       </div>
       <div class="proj">
         <div class="ico">📈</div>
@@ -441,7 +441,7 @@
     </div>
     <div class="feat-grid">
       <div class="feat"><h4>🔄 GitOps &amp; IaC</h4><p class="em">Flux CD reconciles the whole cluster from git; secrets sealed with SOPS + Age. The entire platform is reproducible and recoverable from the repo alone.</p></div>
-      <div class="feat"><h4>🤖 Self-Hosted AI Stack</h4><p class="em">Ollama (ROCm + CUDA), a persistent memory layer (mem0 + OpenMemory over pgvector &amp; Qdrant), the Hermes multi-LLM agent, Open WebUI, an in-cluster terminal coding agent, and n8n AI workflows.</p></div>
+      <div class="feat"><h4>🤖 Self-Hosted AI Stack</h4><p class="em">Ollama (ROCm + CUDA), a shared MCP-native memory layer (Hindsight — hybrid semantic/BM25/graph retrieval over pgvector), the Hermes multi-LLM agent, Open WebUI, and n8n AI workflows.</p></div>
       <div class="feat"><h4>📊 Full Observability</h4><p class="em">VictoriaMetrics + vmagent for metrics, Loki for logs, Grafana dashboards, and Beszel — one pane of glass across every node, VM, and container.</p></div>
       <div class="feat"><h4>🛡️ Resilient, Tiered Backups</h4><p class="em">Proxmox Backup Server with dedup + incremental change-detection, daily logical DB dumps to NFS, weekly USB-3 DAS copies, monthly retention — plus freshness monitoring and self-healing mount watchdogs.</p></div>
       <div class="feat"><h4>🔐 Networking &amp; Security</h4><p class="em">OPNsense firewall/router, Tailscale mesh VPN for zero-trust remote access, and segmented VLANs — managed remotely from a Windows workstation.</p></div>
@@ -482,7 +482,7 @@
       </div>
       <div class="skill-card">
         <h3><span class="dot"></span>AI / ML Ops</h3>
-        <div class="chips"><span class="chip">Ollama (ROCm + CUDA)</span><span class="chip">RAG pipelines</span><span class="chip">pgvector</span><span class="chip">Qdrant</span><span class="chip">mem0</span><span class="chip">n8n AI workflows</span></div>
+        <div class="chips"><span class="chip">Ollama (ROCm + CUDA)</span><span class="chip">RAG pipelines</span><span class="chip">pgvector</span><span class="chip">MCP</span><span class="chip">Hindsight</span><span class="chip">n8n AI workflows</span></div>
       </div>
     </div>
   </div>

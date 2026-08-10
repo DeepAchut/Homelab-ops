@@ -18,16 +18,11 @@ NOW=$(date +%s)
 
 # Backups to track:  <dir>|<glob>|<name-label>
 ENTRIES=(
-  "/mnt/pvedas/k8s-backups|mem0-postgres-*|mem0-postgres"
-  "/mnt/pvedas/k8s-backups|mem0-qdrant-mem0-*|mem0-qdrant-mem0"
-  "/mnt/pvedas/k8s-backups|mem0-qdrant-mem0migrations-*|mem0-qdrant-mem0migrations"
   "/mnt/pvedas/k8s-backups|miniflux-postgres-*|miniflux-postgres"
   "/mnt/pvedas/k8s-backups|n8n-postgres-*|n8n-postgres"
   "/mnt/pvedas/k8s-backups|karakeep-postgres-*|karakeep-postgres"
   "/mnt/pvedas/pbs-config-backups|pbs-ct200-config-*|pbs-ct200-config"
-  "/mnt/pvedas/mem0-backups/postgres|*|mem0-daily-postgres"
-  "/mnt/pvedas/mem0-backups/qdrant|*|mem0-daily-qdrant"
-  "/mnt/pvedas/mem0-backups/claude-sessions|*|mem0-daily-claude-sessions"
+  "/mnt/pvedas/mem0-backups/claude-sessions|*|claude-sessions-daily"
 )
 
 {

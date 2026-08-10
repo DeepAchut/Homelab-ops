@@ -14,8 +14,8 @@ SERVICES = {
     # Phase 22a — Ollama on Evo-X2 host
     "ollama":        ("http://192.168.4.84:11434/api/version",                "version"),
     "ollama-models": ("http://192.168.4.84:11434/api/ps",                     "models[*].name"),
-    # mem0 — Peladn-Ollama-backed memory API
-    "mem0":          ("http://192.168.4.141:30800/health",                    "status"),
+    # Hindsight — self-hosted agent memory (replaced mem0), in-cluster
+    "hindsight":     ("http://hindsight.hindsight.svc.cluster.local:8888/health", "status"),
     # Observability — CT405 on Evo-X2
     "victoriametrics": ("http://192.168.4.66:8428/health",                    None),
     "vm":            ("http://192.168.4.66:8428/health",                      None),
