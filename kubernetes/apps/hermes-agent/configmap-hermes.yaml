@@ -60,3 +60,13 @@ data:
       autoload: true
       huggingface_tap:
         enabled: false   # opt-in later, after vetting; not blanket-enable today
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # MCP servers — external tool providers registered at startup as
+    # mcp_<server>_<tool> (e.g. mcp_hindsight_recall / _retain / _reflect).
+    # Hindsight = the shared self-hosted memory (replaced mem0). Admin Hermes uses
+    # bank "deep" — the same store Claude Code recalls from.
+    # ───────────────────────────────────────────────────────────────────────────
+    mcp_servers:
+      hindsight:
+        url: http://hindsight.hindsight.svc.cluster.local:8888/mcp/deep/

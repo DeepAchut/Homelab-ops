@@ -49,3 +49,11 @@ data:
       autoload: false
       huggingface_tap:
         enabled: false
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # MCP servers — Hindsight shared memory (recall/retain/reflect tools).
+    # Family Hermes uses bank "family" (isolated from admin's "deep"). Replaced mem0.
+    # ───────────────────────────────────────────────────────────────────────────
+    mcp_servers:
+      hindsight:
+        url: http://hindsight.hindsight.svc.cluster.local:8888/mcp/family/

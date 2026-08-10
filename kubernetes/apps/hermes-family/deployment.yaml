@@ -74,10 +74,8 @@ spec:
                   key: API_SERVER_KEY
                   optional: false
 
-            # ── mem0 memory provider — family-scoped namespace ──
-            - { name: MEM0_URL,     value: "http://192.168.4.141:30800" }
-            - { name: MEM0_USER_ID, value: "family" }
-            - { name: MEM0_AGENT_ID, value: "hermes-family" }
+            # ── Memory: now via the Hindsight MCP server (config.yaml mcp_servers,
+            #    bank "family") — replaced the retired mem0 provider (2026-08-10). ──
 
             # ── SearXNG for web search ──
             - name: SEARXNG_URL
