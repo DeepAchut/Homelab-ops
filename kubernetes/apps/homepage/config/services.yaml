@@ -24,6 +24,10 @@
         icon: open-webui.svg
         href: http://192.168.4.141:30880
         description: Chat / RAG over Ollama
+    - Hindsight:
+        icon: mdi-brain
+        href: http://192.168.4.71:30999
+        description: Agent memory (search + knowledge graph)
     - SearXNG:
         icon: searxng.svg
         href: http://192.168.4.141:30802
