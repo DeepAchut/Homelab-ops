@@ -40,12 +40,22 @@ spec:
             - { containerPort: 8888, name: api }
             - { containerPort: 9999, name: ui }
           env:
-            # --- LLM: retain-time extraction via .84 Ollama ---
-            - { name: HINDSIGHT_API_LLM_PROVIDER, value: "ollama" }
-            - { name: HINDSIGHT_API_LLM_MODEL,    value: "qwen3.6:35b-a3b" }
-            - { name: HINDSIGHT_API_LLM_BASE_URL, value: "http://192.168.4.84:11434" }
-            - { name: HINDSIGHT_API_LLM_API_KEY,  value: "ollama-unused" }
+            # --- LLM: retain-time fact extraction via .84 Ollama ---
+            # qwen3:4b-instruct (non-thinking) chosen over qwen3.6:35b-a3b: the 35b
+            # is a thinking model (~35s/call, and its output broke Hindsight's JSON
+            # extraction). 4b-instruct returns clean JSON in all modes at ~1s, so
+            # retain/import stay fast; Hindsight's 4-strategy retrieval + reranker
+            # (all local) carry the recall quality.
+            - { name: HINDSIGHT_API_LLM_PROVIDER,    value: "ollama" }
+            - { name: HINDSIGHT_API_LLM_MODEL,       value: "qwen3:4b-instruct" }
+            - { name: HINDSIGHT_API_LLM_BASE_URL,    value: "http://192.168.4.84:11434" }
+            - { name: HINDSIGHT_API_LLM_API_KEY,     value: "ollama-unused" }
+            - { name: HINDSIGHT_API_LLM_STRICT_SCHEMA, value: "true" }
+            - { name: HINDSIGHT_API_LLM_TEMPERATURE, value: "0.1" }
             - { name: HINDSIGHT_API_LLM_OLLAMA_NUM_CTX, value: "16384" }
+            # Stable worker id (Deployment pod name changes on recreate -> else
+            # in-flight consolidation tasks can get orphaned). Single replica.
+            - { name: HINDSIGHT_API_WORKER_ID, value: "hindsight-0" }
             # --- embeddings + reranker stay local (defaults); cache on the PVC ---
             - { name: HF_HOME, value: "/home/hindsight/.pg0/hf" }
             - { name: HINDSIGHT_API_LOG_LEVEL, value: "info" }
