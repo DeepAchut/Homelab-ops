@@ -18,7 +18,6 @@ NOW=$(date +%s)
 
 # Backups to track:  <dir>|<glob>|<name-label>
 ENTRIES=(
-  "/mnt/pvedas/k8s-backups|hindsight-postgres-*|hindsight-postgres"
   "/mnt/pvedas/k8s-backups|miniflux-postgres-*|miniflux-postgres"
   "/mnt/pvedas/k8s-backups|n8n-postgres-*|n8n-postgres"
   "/mnt/pvedas/k8s-backups|karakeep-postgres-*|karakeep-postgres"

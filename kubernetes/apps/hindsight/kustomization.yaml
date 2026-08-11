@@ -6,5 +6,3 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
-  - backup-rbac.yaml
-  - backup-cronjob.yaml

@@ -24,9 +24,10 @@
 #     (reinstallable from the manifest); binaryData (empty / DB-mode).
 #
 # NOTE (2026-08-10): mem0 was retired — its qdrant/postgres backup sections were
-# removed. The AI memory is now Hindsight (ns hindsight, on the Evo-X2 worker,
-# its own PVC). TODO: add a Hindsight backup (logical pg_dump of its embedded
-# postgres) if/when desired — its data also reconstructs from the exported memories.
+# removed. The AI memory is now Hindsight, on the Evo-X2 K8s WORKER (VM 402) —
+# and unlike the physical rpi4, that VM IS captured by vzdump, so Hindsight's
+# local-path PVC is already backed up at the VM level. No separate logical dump
+# is done here (its data also reconstructs from the exported-memories JSON).
 #
 # Retention: keep last 14 per prefix.
 
