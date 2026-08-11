@@ -130,7 +130,7 @@ NEVER_RUN = [
     "systemctl emergency",
     "systemctl rescue",
     # K8s mass destruction
-    "kubectl delete namespace mem0",
+    "kubectl delete namespace hindsight",
     "kubectl delete namespace flux-system",
     "kubectl delete namespace kube-system",
     "kubectl delete namespace n8n",

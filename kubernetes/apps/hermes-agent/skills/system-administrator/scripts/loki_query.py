@@ -3,7 +3,7 @@
 loki_query.py — query Loki (LogQL) for log lines.
 
 Usage:
-  loki_query.py '{namespace="mem0"}' --range 1h --limit 50
+  loki_query.py '{namespace="hindsight"}' --range 1h --limit 50
   loki_query.py '{job="opnsense"} |~ "(block|reject)"' --range 6h
   loki_query.py --suggest                # useful starters
   loki_query.py --labels                 # what labels exist
@@ -16,8 +16,8 @@ import argparse, json, sys, time, urllib.parse, urllib.request
 LOKI = "http://192.168.4.66:3100"
 
 SUGGEST = [
-    ("all mem0-server logs (last 30m)",
-     '{namespace="mem0", app="mem0-server"}'),
+    ("all hindsight logs (last 30m)",
+     '{namespace="hindsight", app="hindsight"}'),
     ("OPNsense filter drops/rejects (last 6h)",
      '{job="opnsense"} |~ "(?i)(block|reject|filterlog)"'),
     ("K8s panic/fatal/CrashLoop spikes (last 1h)",

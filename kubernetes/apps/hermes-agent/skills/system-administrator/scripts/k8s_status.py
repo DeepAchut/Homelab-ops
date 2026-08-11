@@ -7,8 +7,8 @@ to call the K8s API directly via stdlib urllib. No `kubectl` binary needed.
 
 Usage:
   k8s_status.py                                 # all pods, all namespaces, short summary
-  k8s_status.py mem0                            # pods in namespace mem0
-  k8s_status.py mem0 --pod postgres             # only pods whose name contains 'postgres'
+  k8s_status.py hindsight                       # pods in namespace hindsight
+  k8s_status.py hindsight --pod hindsight       # only pods whose name contains 'hindsight'
   k8s_status.py --node ira-rpi4-talos-worker    # pods on a specific node
   k8s_status.py --all                           # verbose JSON
 """

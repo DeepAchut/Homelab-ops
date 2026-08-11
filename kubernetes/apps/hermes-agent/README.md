@@ -29,14 +29,14 @@ In-session mid-conversation overrides via `/model <provider>:<model>` — see He
 
 ## The `system-administrator` skill
 
-The skill is the homelab brain. Its `SKILL.md` embeds the **complete lab topology** — every host, LXC, VM, K8s namespace, service URL, port, IP, secret reference, plus a hard-pitfalls list (do NOT `kubectl delete` mem0/n8n/flux-system/kube-system without same-message confirmation, etc.).
+The skill is the homelab brain. Its `SKILL.md` embeds the **complete lab topology** — every host, LXC, VM, K8s namespace, service URL, port, IP, secret reference, plus a hard-pitfalls list (do NOT `kubectl delete` hindsight/n8n/flux-system/kube-system without same-message confirmation, etc.).
 
 Seven helper scripts (pure-stdlib Python, read-only):
 
 | Script | What it queries | Auth |
 |---|---|---|
 | `k8s_status.py` | K8s API: pods, namespaces, restart counts, by node/name | in-cluster ServiceAccount |
-| `service_health.py` | HTTP `/health` of 12 known services (Ollama, mem0, VM, Grafana, Loki, PBS, Gotify, NPM, Telegraf, Hermes self) | none |
+| `service_health.py` | HTTP `/health` of known services (Ollama, Hindsight, VM, Grafana, Loki, PBS, Gotify, NPM, Telegraf, Hermes self) | none |
 | `vm_query.py` | VictoriaMetrics — PromQL/MetricsQL queries, `--suggest` for starter queries | none |
 | `loki_query.py` | Loki — LogQL queries, `--suggest`, `--labels`, `--label-values` | none |
 | `proxmox_status.py` | Proxmox VE — node + VM/LXC status on Peladn + Evo-X2 | `PROXMOX_TOKEN_ID/VALUE` (PVEAuditor role) |

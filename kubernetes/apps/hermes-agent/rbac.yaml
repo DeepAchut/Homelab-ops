@@ -6,7 +6,7 @@ metadata:
   namespace: hermes-agent
 ---
 # Read-only across the cluster — Hermes can answer "what pods are running" /
-# "what's the state of mem0" without ever mutating anything.
+# "what's the state of hindsight" without ever mutating anything.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
