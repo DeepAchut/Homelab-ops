@@ -1,5 +1,7 @@
 # ADR-005: qwen3:4b-instruct for mem0 LLM (with qwen3-embedding:0.6b)
 
+> **⛔ SUPERSEDED (2026-08-10):** mem0 was retired; memory is now Hindsight (its retain-time fact extraction uses qwen3:4b-instruct on the Evo-X2 Ollama — a non-thinking model, same lesson as here). This ADR documents the mem0-era model choice.
+
 **Date:** 2026-05 (settled)
 **Status:** Accepted
 **Supersedes:** an earlier interim choice of `gemma4:e2b` that was never durably deployed.

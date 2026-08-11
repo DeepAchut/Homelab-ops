@@ -52,13 +52,13 @@ pct exec "$LXC_ID" -- head -c 8 "$LXC_NCDATA" >/dev/null 2>&1 && lxc_ok="yes"
 # A DAS flap can make systemd STOP nfs-server (it depends on the /mnt/pvedas
 # mount) and then NOT restart it when the mount returns. nfs-server exports
 # /mnt/pvedas/{karakeep,mem0-backups,n8n} to the k8s cluster, so when it stays
-# down karakeep wedges (HTTP 502) and the mem0 backup CronJobs silently fail.
+# down karakeep wedges (HTTP 502) and the n8n-driven PVC backups can't write.
 # If the host mount is healthy but nfs-server is down, bring it back + re-export.
 # (Runs independent of the LXC bind state below; NFS only needs the host mount.)
 if [ "$host_ok" = "yes" ] && ! systemctl is-active --quiet nfs-server; then
   log "nfs-server down while host mount is healthy — restarting + re-exporting"
   if systemctl start nfs-server && exportfs -ra; then
-    notify "NFS auto-recover on Peladn" "nfs-server was down after a DAS flap; restarted it and re-exported. karakeep + mem0 backups depend on it." 6
+    notify "NFS auto-recover on Peladn" "nfs-server was down after a DAS flap; restarted it and re-exported. karakeep + the k8s PVC backups depend on it." 6
   else
     log "ERROR: failed to restart nfs-server"
     notify "NFS recovery FAILED on Peladn" "Tried to restart nfs-server (down after a DAS flap) but it failed. Investigate." 9

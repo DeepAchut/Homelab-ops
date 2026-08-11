@@ -8,8 +8,8 @@
 # on this laptop at ~/.claude/projects/. They were never backed up — the DAS dir
 # /mnt/pvedas/mem0-backups/claude-sessions/ was an empty placeholder. This makes a
 # dated tar.gz of the whole projects tree and ships it to the DAS (which is swept
-# into the Friday DAS->PBS backup). Surfaces on the mem0 Grafana dashboard via
-# homelab_backup_age_seconds{name="mem0-daily-claude-sessions"}.
+# into the Friday DAS->PBS backup). Freshness tracked via
+# homelab_backup_age_seconds{name="claude-sessions-daily"}.
 #
 # Captures: ~/.claude/projects/ = every project's .jsonl transcripts AND the
 #           memory/ files (MEMORY.md + project_*.md). Excludes settings.json

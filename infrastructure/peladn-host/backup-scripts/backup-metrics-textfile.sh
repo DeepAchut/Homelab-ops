@@ -4,7 +4,7 @@
 #
 # Writes Prometheus textfile metrics to the node-exporter textfile collector dir.
 # The Peladn node-exporter (192.168.4.150:9100) is scraped by VictoriaMetrics, so
-# these land in VM with host="peladn" and power the mem0/backup Grafana panels:
+# these land in VM with host="peladn" as backup-freshness metrics:
 #   homelab_backup_age_seconds{name=...}   — seconds since the newest matching file
 #   homelab_backup_size_bytes{name=...}    — size of that newest file
 #   homelab_backup_count{name=...}         — number of matching files (retention check)

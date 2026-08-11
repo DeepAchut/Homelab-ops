@@ -1,5 +1,7 @@
 # ADR-003: mem0 over MemPalace for AI Memory Layer
 
+> **⛔ SUPERSEDED (2026-08-10):** mem0 was migrated to [Hindsight](https://github.com/vectorize-io/hindsight) and removed. This ADR records the original decision; see [docs/case-study-ai-memory-layer.md](../docs/case-study-ai-memory-layer.md) for the mem0 → Hindsight evolution and rationale.
+
 **Date:** 2026-04  
 **Status:** Accepted
 

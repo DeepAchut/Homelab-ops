@@ -59,7 +59,7 @@ This adds **one** targeted rule: `tcp dport 11434` accepted only from `192.168.4
 | Model | Size on disk | VRAM (loaded) | Use |
 |---|---|---|---|
 | `qwen3.6:35b-a3b` | 23 GB | ~26 GB | Primary — chat, tool calling, code (3.8 B active params) |
-| `qwen3-embedding:0.6b` | 639 MB | ~1.5 GB | Embeddings (mem0 could repoint here if desired) |
+| `qwen3-embedding:0.6b` | 639 MB | ~1.5 GB | Embeddings (was mem0's embedder; Hindsight uses its own in-pod bge-small) |
 
 **Context window:** the override sets `OLLAMA_CONTEXT_LENGTH=32768` (default is ~4K,
 which truncates large prompts). This is required for agentic coding tools — see

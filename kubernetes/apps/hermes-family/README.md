@@ -12,7 +12,7 @@ Hermes v0.16 doesn't yet support per-user memory isolation within a single proce
 |---|---|---|
 | Namespace | `hermes-agent` | `hermes-family` |
 | Default model | `qwen3.6:35b-a3b` (heavy reasoning) | `gemma4:e4b` (multimodal, light, friendly) |
-| mem0 user_id | `deep` | `family` |
+| Hindsight bank | `deep` | `family` |
 | Skills loaded | `system-administrator` (SSH, repo, git, observability) | None (plain chat + web search + image gen via toolsets) |
 | Resources | 8 GiB RAM ceiling | 4 GiB RAM ceiling |
 | PVC size | 10 Gi | 5 Gi |

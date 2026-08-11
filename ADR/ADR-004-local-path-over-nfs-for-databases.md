@@ -1,5 +1,7 @@
 # ADR-004: Local-Path Storage for Postgres and Qdrant (not NFS)
 
+> **Note (2026-08-10):** written for mem0 (since retired → Hindsight). The core decision still holds — Hindsight's embedded postgres also runs on a local-path PVC, not NFS.
+
 **Date:** 2026-04  
 **Status:** Accepted
 

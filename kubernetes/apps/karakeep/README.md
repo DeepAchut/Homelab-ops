@@ -140,4 +140,4 @@ To change models without redeploy: edit `INFERENCE_TEXT_MODEL` in `karakeep-depl
 ## See also
 
 - [`docs/case-study-ai-memory-layer.md`](../../../docs/case-study-ai-memory-layer.md) — same Postgres-on-local-path / heavy-data-on-NFS pattern
-- [`apps/mem0/`](../mem0/) — closest existing reference for the StatefulSet + worker layout
+- [`apps/n8n/`](../n8n/) — reference for a StatefulSet + Postgres worker layout
