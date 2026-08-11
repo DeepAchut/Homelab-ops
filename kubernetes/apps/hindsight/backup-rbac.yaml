@@ -1,0 +1,37 @@
+# Least-privilege SA for the hindsight-backup CronJob: it runs `kubectl exec`
+# into the hindsight pod to pg_dump the embedded (127.0.0.1-only) postgres.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hindsight-backup
+  namespace: hindsight
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hindsight-backup
+  namespace: hindsight
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get]        # `kubectl exec deploy/hindsight` reads the Deployment
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hindsight-backup
+  namespace: hindsight
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hindsight-backup
+subjects:
+  - kind: ServiceAccount
+    name: hindsight-backup
+    namespace: hindsight
