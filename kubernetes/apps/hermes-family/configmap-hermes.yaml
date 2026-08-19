@@ -57,3 +57,5 @@ data:
     mcp_servers:
       hindsight:
         url: http://hindsight.hindsight.svc.cluster.local:8888/mcp/family/
+        headers:
+          Authorization: "Bearer ${HINDSIGHT_API_KEY}"

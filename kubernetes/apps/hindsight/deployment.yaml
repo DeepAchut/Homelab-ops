@@ -56,6 +56,19 @@ spec:
             # Stable worker id (Deployment pod name changes on recreate -> else
             # in-flight consolidation tasks can get orphaned). Single replica.
             - { name: HINDSIGHT_API_WORKER_ID, value: "hindsight-0" }
+            # --- API-key auth (built-in tenant extension). Once set, every API/MCP
+            #     request must send `Authorization: Bearer <HINDSIGHT_API_TENANT_API_KEY>`
+            #     (401 without). Also populates the per-bank audit log (ops attributed
+            #     to the authenticated tenant). Banks deep/family keep their paths. ---
+            - { name: HINDSIGHT_API_TENANT_EXTENSION, value: "hindsight_api.extensions.builtin.tenant:ApiKeyTenantExtension" }
+            - name: HINDSIGHT_API_TENANT_API_KEY
+              valueFrom: { secretKeyRef: { name: hindsight-auth, key: HINDSIGHT_API_TENANT_API_KEY } }
+            # Built-in CP UI must present the same key to the now-locked dataplane API
+            - name: HINDSIGHT_CP_DATAPLANE_API_KEY
+              valueFrom: { secretKeyRef: { name: hindsight-auth, key: HINDSIGHT_CP_DATAPLANE_API_KEY } }
+            # Shared secret to view the Control Plane web UI (:30999)
+            - name: HINDSIGHT_CP_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: hindsight-auth, key: HINDSIGHT_CP_ACCESS_KEY } }
             # --- embeddings + reranker stay local (defaults); cache on the PVC ---
             - { name: HF_HOME, value: "/home/hindsight/.pg0/hf" }
             - { name: HINDSIGHT_API_LOG_LEVEL, value: "info" }

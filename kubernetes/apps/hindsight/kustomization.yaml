@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: hindsight
 resources:
   - namespace.yaml
+  - secret.enc.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml

@@ -160,6 +160,10 @@ spec:
             - { name: PBS_TOKEN_VALUE,      valueFrom: { secretKeyRef: { name: hermes-credentials, key: PBS_TOKEN_VALUE,      optional: true } } }
             # Hermes expects its data root at /opt/data per the official image
             - { name: HERMES_HOME,          value: "/opt/data" }
+            # Bearer key for the Hindsight MCP — interpolated into config.yaml's
+            # mcp_servers.hindsight.headers as Authorization: Bearer ${HINDSIGHT_API_KEY}.
+            - name: HINDSIGHT_API_KEY
+              valueFrom: { secretKeyRef: { name: hindsight-mcp-auth, key: HINDSIGHT_API_KEY } }
           volumeMounts:
             - { name: data, mountPath: /opt/data }
             # SSH key for admin v2 is staged by the init container at

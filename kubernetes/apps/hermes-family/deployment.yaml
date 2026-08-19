@@ -91,6 +91,9 @@ spec:
 
             # ── Hermes data dir (matches volume mount below) ──
             - { name: HERMES_DATA_DIR, value: "/opt/data" }
+            # ── Bearer key for the Hindsight MCP (interpolated into config.yaml) ──
+            - name: HINDSIGHT_API_KEY
+              valueFrom: { secretKeyRef: { name: hindsight-mcp-auth, key: HINDSIGHT_API_KEY } }
           volumeMounts:
             - { name: data, mountPath: /opt/data }
           resources:

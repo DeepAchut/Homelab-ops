@@ -10,6 +10,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - secret.enc.yaml
+  - hindsight-mcp-secret.enc.yaml
   # SKILL.md content is sensitive (lab topology) — encrypted Secret instead of plaintext ConfigMap.
   - skills/system-administrator/skill-content.enc.yaml
 
